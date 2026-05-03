@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+<head> <link rel="manifest" href="manifest-movie.json">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>LevelMovie - L'Écosystème Premium</title>
 
-<!-- Tailwind CSS pour le style -->
+<!-- Favicon SVG -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='512' height='512' viewBox='0 0 512 512' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='blueGlow' x='-30%25' y='-30%25' width='160%25' height='160%25'%3E%3CfeGaussianBlur stdDeviation='18' result='blur' /%3E%3CfeComposite in='SourceGraphic' in2='blur' operator='over' /%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23blueGlow)'%3E%3Cpath d='M185 170V315C185 328.807 196.193 340 210 340H355' stroke='%233b82f6' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M235 210L325 255L235 300V210Z' fill='%233b82f6' stroke='%233b82f6' stroke-width='8' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E">
+
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Import Maps : Permet au navigateur de comprendre les "import" de React, Lucide et Firebase -->
+<!-- API EmailJS -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<!-- Import Maps -->
 <script type="importmap">
 {
 "imports": {
@@ -22,15 +28,21 @@
 }
 </script>
 
-<!-- Babel : Traduit le JSX en Javascript lisible par le navigateur -->
+<!-- Babel -->
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-[#060608] text-white">
-<!-- C'est ici que l'application React va s'injecter -->
+<body class="bg-[#060608] text-white overflow-x-hidden">
 <div id="root"></div>
 
-<!-- Script de l'Application -->
 <script type="text/babel" data-type="module">
+// --- CAPTURE DU LIEN D'INVITATION (MÉMOIRE PERSISTANTE) ---
+const urlParams = new URLSearchParams(window.location.search);
+const partyParam = urlParams.get('party');
+if (partyParam) {
+    localStorage.setItem('pending_party_join', partyParam);
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -38,13 +50,14 @@ Play, Info, Search, Bell, X, ChevronLeft, ChevronRight,
 Star, Key, LogOut, Film, Globe, Shield, Network,
 AlertTriangle, CheckCircle, Server, Users, Tags, Building,
 MessageSquare, Check, Plus, Share2, Library, Bookmark, HardDrive, Filter,
-Home, Tv, Clapperboard, History, AlertOctagon, Download, Copy
+Home, Tv, Clapperboard, History, AlertOctagon, Download, Copy, Lock,
+ArrowDown, ArrowUp, Eye, EyeOff, Send, Mail, Search as SearchIcon, Reply, UserPlus, Power, Pause, ShieldCheck, VolumeX, UserMinus, ShieldAlert
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collectionGroup, getDocs, doc, setDoc, getDoc, deleteDoc, collection } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collectionGroup, getDocs, doc, setDoc, getDoc, deleteDoc, collection, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
-// --- NOUVEAU LOGO LEVEL MOVIE PRO (Symbole "L" + Play Minimaliste) ---
+// --- LOGOS ---
 const LevelMovieLogo = ({ className = "w-6 h-6", color = "currentColor" }) => (
 <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M5 4V17C5 19.2091 6.79086 21 9 21H20" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -52,23 +65,21 @@ const LevelMovieLogo = ({ className = "w-6 h-6", color = "currentColor" }) => (
 </svg>
 );
 
-// --- LOGOS SVG OFFICIELS ---
-const AppleLogoSVG = ({ className }) => (
-<svg className={className} viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.3 48.6-.8 90.4-84.3 102.8-119.8-12.4-7.5-61.6-26.8-61.9-90.8zM245.9 83.2c18.5-22.4 31.1-53.7 27.7-83.2-24.1 1-56.1 16-74.7 38.3-15.6 18.8-29.8 51.5-25.5 80.1 26.8 2 54-12.8 72.5-35.2z"/></svg>
-);
-const PlayStoreLogoSVG = ({ className }) => (
-<svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2.87157 1.05608C2.6025 1.34188 2.45703 1.77708 2.45703 2.33924V21.6608C2.45703 22.2229 2.6025 22.6581 2.88037 22.9439L2.95958 23.0143L14.0729 11.9009V11.7689L2.95958 0.646729L2.87157 1.05608Z" fill="#4285F4"/>
-<path d="M17.7516 15.58L14.0729 11.9009V11.7689L17.7428 8.08984L17.8484 8.14266L22.1873 10.6068C23.4194 11.302 23.4194 12.4373 22.1873 13.1237L17.8484 15.5272L17.7516 15.58Z" fill="#FBBC04"/>
-<path d="M17.8485 15.5272L14.073 11.7689L2.95966 23.0143C3.47936 23.5689 4.31548 23.6393 5.35402 23.0583L17.8485 15.5272Z" fill="#EA4335"/>
-<path d="M17.8485 8.14264L5.35402 0.602641C4.31548 0.0216413 3.48816 0.0920413 2.95966 0.646641L14.073 11.9009L17.8485 8.14264Z" fill="#34A853"/>
+const WatchPartySVG = ({ className }) => (
+<svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+    <polygon points="10 8 15 10 10 12 10 8" fill="currentColor"></polygon>
+    <path d="M7 21h10"></path>
+    <path d="M12 17v4"></path>
 </svg>
 );
-const OperaLogoSVG = ({ className }) => (
-<svg className={className} viewBox="0 0 512 512" fill="#FF1B2D"><path d="M255.8 48C141 48 48 141.2 48 256s93 208 207.8 208c115 0 208.2-93.2 208.2-208S370.8 48 255.8 48zm0 338.5c-56 0-101.2-58.5-101.2-130.5 0-72 45.2-130.5 101.2-130.5 56 0 101.2 58.5 101.2 130.5 0 72-45.2 130.5-101.2 130.5z"/></svg>
-);
 
-// --- FONCTION UTILITAIRE : COPIE PRESSE-PAPIERS COMPATIBLE IFRAME ---
+const AppleLogoSVG = ({ className }) => <svg className={className} viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.3 48.6-.8 90.4-84.3 102.8-119.8-12.4-7.5-61.6-26.8-61.9-90.8zM245.9 83.2c18.5-22.4 31.1-53.7 27.7-83.2-24.1 1-56.1 16-74.7 38.3-15.6 18.8-29.8 51.5-25.5 80.1 26.8 2 54-12.8 72.5-35.2z"/></svg>;
+const PlayStoreLogoSVG = ({ className }) => <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.87157 1.05608C2.6025 1.34188 2.45703 1.77708 2.45703 2.33924V21.6608C2.45703 22.2229 2.6025 22.6581 2.88037 22.9439L2.95958 23.0143L14.0729 11.9009V11.7689L2.95958 0.646729L2.87157 1.05608Z" fill="#4285F4"/><path d="M17.7516 15.58L14.0729 11.9009V11.7689L17.7428 8.08984L17.8484 8.14266L22.1873 10.6068C23.4194 11.302 23.4194 12.4373 22.1873 13.1237L17.8484 15.5272L17.7516 15.58Z" fill="#FBBC04"/><path d="M17.8485 15.5272L14.073 11.7689L2.95966 23.0143C3.47936 23.5689 4.31548 23.6393 5.35402 23.0583L17.8485 15.5272Z" fill="#EA4335"/><path d="M17.8485 8.14264L5.35402 0.602641C4.31548 0.0216413 3.48816 0.0920413 2.95966 0.646641L14.073 11.9009L17.8485 8.14264Z" fill="#34A853"/></svg>;
+const OperaLogoSVG = ({ className }) => <svg className={className} viewBox="0 0 512 512" fill="#FF1B2D"><path d="M255.8 48C141 48 48 141.2 48 256s93 208 207.8 208c115 0 208.2-93.2 208.2-208S370.8 48 255.8 48zm0 338.5c-56 0-101.2-58.5-101.2-130.5 0-72 45.2-130.5 101.2-130.5 56 0 101.2 58.5 101.2 130.5 0 72-45.2 130.5-101.2 130.5z"/></svg>;
+const ChromeLogoSVG = ({ className }) => <svg viewBox="0 0 48 48" className={className} xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 2C15.6 2 8 6.7 4 13.8L12.5 28.5C14.3 23 18.7 19 24 19H45.1C41.7 9.2 33.6 2 24 2z"/><path fill="#4CAF50" d="M24 46C32.1 46 39.5 41.7 43.7 35L35.2 20.3C32.3 25.1 26.6 28 20.8 28H1.3C5.1 38.6 13.8 46 24 46z"/><path fill="#FFC107" d="M46 18.9c-.3-1.6-.7-3.2-1.3-4.7L27.6 44.5C36.9 42 44.4 33.8 46 18.9z"/><circle fill="#FFF" cx="24" cy="24" r="11"/><circle fill="#1976D2" cx="24" cy="24" r="9"/></svg>;
+const SafariLogoSVG = ({ className }) => <svg viewBox="0 0 48 48" className={className} xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" fill="#0288D1"/><circle cx="24" cy="24" r="18" fill="none" stroke="#FFF" strokeWidth="2" opacity="0.3"/><path d="M24 6v4m0 28v4m18-18h-4M10 24H6m3-9l3 3m24 12l-3-3m0-18l-3 3M15 33l3-3" stroke="#FFF" strokeWidth="2" strokeLinecap="round" opacity="0.6"/><path d="M15 33L22 15l11 2 2 11-11-2z" fill="#FFF"/><path d="M22 15l2 11-9-3z" fill="#F44336"/><circle cx="24" cy="24" r="2.5" fill="#424242"/></svg>;
+
 const copyToClipboardFallback = (text) => {
 const textArea = document.createElement("textarea");
 textArea.value = text;
@@ -77,15 +88,33 @@ textArea.style.opacity = "0";
 document.body.appendChild(textArea);
 textArea.focus();
 textArea.select();
-try {
-document.execCommand('copy');
-} catch (err) {
-console.error('Impossible de copier le texte', err);
-}
+try { document.execCommand('copy'); } catch (err) {}
 document.body.removeChild(textArea);
 };
 
-// --- CONFIGURATION FIREBASE (Écosystème LevelUp) ---
+const getBrowserData = () => {
+    const ua = navigator.userAgent;
+    if (/Brave/i.test(ua) || (navigator.brave && navigator.brave.isBrave)) return { name: 'Brave', id: 'brave' };
+    if (/Edg/i.test(ua)) return { name: 'Edge', id: 'edge' };
+    if (/Firefox|FxiOS/i.test(ua)) return { name: 'Firefox', id: 'firefox' };
+    if (/GSA/i.test(ua)) return { name: 'Google', id: 'google' };
+    if (/Chrome|CriOS/i.test(ua)) return { name: 'Chrome', id: 'chrome' };
+    if (/Safari/i.test(ua)) return { name: 'Safari', id: 'safari' };
+    return { name: null, id: null };
+};
+
+const renderBrowserIcon = (id, className) => {
+    switch(id) {
+        case 'chrome': return <ChromeLogoSVG className={className} />;
+        case 'safari': return <SafariLogoSVG className={className} />;
+        case 'firefox': return <FirefoxLogoSVG className={className} />;
+        case 'edge': return <EdgeLogoSVG className={className} />;
+        case 'brave': return <BraveLogoSVG className={className} />;
+        case 'google': return <GoogleLogoSVG className={className} />;
+        default: return <Globe className={className} />;
+    }
+};
+
 const firebaseConfig = {
 apiKey: "AIzaSyA3JgvNu5p-43037jvm4WRDaJHI9ES7uGM",
 authDomain: "levelup-ia.firebaseapp.com",
@@ -99,15 +128,20 @@ measurementId: "G-MSRDY2574K"
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const APP_ID = "level-ia-premium";
+const APP_ID = typeof __app_id !== 'undefined' ? __app_id : "level-ia-premium";
 
-// --- CONFIGURATION TMDB ---
 const API_KEY = '027cc951d888c64e5f15dcb853c7347a';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const IMAGE_ORIGINAL = 'https://image.tmdb.org/t/p/original';
 
-// --- DICTIONNAIRE DE TRADUCTION COMPLET ---
+const formatTimeEstimate = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}min ${s}s`;
+};
+
 const i18n = {
 fr: {
 appTitle: "LevelMovie",
@@ -119,6 +153,15 @@ home: "Accueil",
 series: "Séries",
 movies: "Films",
 myList: "Ma liste",
+partyTab: "Salons",
+joinPartyTitle: "Rejoindre un Salon",
+joinPartyDesc: "Entrez le code d'accès pour rejoindre vos amis.",
+createPartyTitle: "Créer un Salon",
+createPartyDesc: "Trouvez un film pour lancer une session de groupe.",
+joinBtn: "Rejoindre",
+partyCodePlaceholder: "Code d'accès...",
+searchPartyMoviePlaceholder: "Rechercher un film à regarder...",
+watchPartyMovies: "Parfait pour regarder entre amis",
 trending: "Tendances Mondiales",
 frenchCinema: "Cinéma Francophone",
 frenchSeries: "Séries Francophones",
@@ -144,7 +187,7 @@ upcoming: "À Venir (Sorties)",
 nowPlaying: "En Salle Actuellement",
 play: "Lecture",
 details: "Plus d'infos",
-playMovie: "Regarder le Film",
+playMovie: "Regarder",
 trailer: "Bande-annonce",
 notFound: "Contenu Indisponible",
 notFoundDesc: "Le lecteur sécurisé n'a pas pu trouver de vidéo officielle pour ce titre.",
@@ -153,16 +196,17 @@ cast: "Casting Principal",
 similar: "Titres Similaires",
 legalWatch: "Disponible sur :",
 noLegal: "Aucune offre de streaming légal recensée dans votre région.",
-closePlayer: "Fermer le lecteur",
+closePlayer: "Fermer",
 warningTitle: "Avertissement Sécurité & Publicités",
-warningText: "Les films complets sont diffusés via des API tierces. <b>LevelUp n'héberge aucun contenu</b>. Des pop-ups et des publicités indépendantes peuvent apparaître sur ces lecteurs.",
+warningText: "Les films complets sont diffusés via des API tierces. <b>LevelUp n'héberge aucun contenu</b>.",
 warningCheckbox: "J'accepte de visionner le contenu depuis ces serveurs.",
 warningBtn: "Lancer le film",
 noDesc: "Aucune description disponible.",
 addedList: "Ajouté aux favoris !",
 removedList: "Retiré de la liste",
 publicDomain: "Classiques du Cinéma",
-searchPlaceholder: "Rechercher un film, une série...",
+searchPlaceholder: "Rechercher...",
+recentSearches: "Recherches récentes",
 defaultUser: "Utilisateur",
 premiumActive: "Compte Premium Actif",
 ecosystem: "Écosystème LevelIA",
@@ -177,10 +221,11 @@ systemVideo: "Système & Vidéo",
 videoQuality: "Qualité Vidéo",
 auto4k: "Auto (4K HDR)",
 parentalFilter: "Filtre Parental",
+parentalFilterDesc: "Masque strictement les contenus explicites (18+).",
 systemCache: "Cache Système",
 clearCache: "Vider",
 ourPartners: "Nos Partenaires :",
-logoutBtn: "Se Déconnecter de LevelMovie",
+logoutBtn: "Se Déconnecter",
 logoutConfirm: "Êtes-vous sûr de vouloir quitter ?",
 cancel: "Annuler",
 confirm: "Confirmer",
@@ -188,23 +233,23 @@ osVersion: "LevelMovie • Architecture V1.0",
 loginSuccess: "Connexion réussie",
 cacheCleared: "Cache nettoyé avec succès.",
 filterApplied: "Préférences mises à jour.",
-linkCopied: "Lien copié dans le presse-papier !",
+linkCopied: "Copié !",
 emptyList: "Votre liste est vide.",
 searchResults: "Résultats de recherche",
-noResults: "Aucun résultat trouvé dans la base de données mondiale.",
+noResults: "Aucun résultat trouvé.",
 featured: "À la une",
-externalSources: "Sources Externes (Gratuites)",
-audioTip: "Astuce : Si le film ne s'affiche pas ou s'il y a trop de publicités, changez de serveur ci-dessous.",
+externalSources: "Sources Externes",
+audioTip: "Astuce : Si le film ne s'affiche pas, changez de serveur ci-dessous.",
 movieInfo: "Infos du film",
-server1: "Serveur 1 (Global) ⭐",
+server1: "Serveur 1 (Global)",
 server2: "Serveur 2 (Multi)",
 publicDomainDirect: "Domaine Public",
 youtubeFull: "Serveur Direct (HD)",
 originalTitle: "Titre Original",
 notSpecified: "Non spécifié",
 inProgress: "(En cours)",
-trailerPlaying: "Bande-annonce en cours",
-alreadyInList: "Déjà dans vos favoris",
+trailerPlaying: "Bande-annonce...",
+alreadyInList: "Dans vos favoris",
 addToList: "Ajouter à Ma Liste",
 share: "Partager",
 director: "Réalisation / Écriture",
@@ -216,12 +261,12 @@ tmdbReviews: "Notes & Avis TMDB",
 certifiedReviews: "avis certifiés",
 noCasting: "Casting non disponible",
 recommendationTitle: "⭐ RECOMMANDATION IMPORTANTE",
-recommendationText: "Pour une lecture fluide et <b>sans publicité bloquante</b>, nous vous conseillons vivement d'utiliser le <b>Serveur 1 (Global)</b>.",
-warningDisclaimer: "Les flux vidéo gratuits sont fournis par des serveurs externes et indépendants de LevelUp. Nous n'hébergeons aucun fichier vidéo. Nous recommandons d'utiliser un navigateur web intégrant un bloqueur de publicités natif (ex: Opera, Brave) pour éviter les pop-ups abusives des autres serveurs.",
-disclaimerCheckbox: "J'ai compris et j'accepte de visionner le contenu depuis un serveur externe.",
+recommendationText: "Pour une lecture fluide et sans publicité, utilisez le <b>Serveur 1 (Global)</b>.",
+warningDisclaimer: "Les flux vidéo gratuits sont fournis par des serveurs externes. Nous recommandons un bloqueur de publicités.",
+disclaimerCheckbox: "J'accepte de visionner le contenu depuis un serveur externe.",
 acceptPlay: "Accepter & Lancer",
-contentUnavailableDesc: "Nous vous prions de nous excuser. Le flux vidéo officiel pour ce programme est introuvable ou a été retiré de nos serveurs partenaires.",
-asianDrama: "Séries Asiatiques (K-Dramas)",
+contentUnavailableDesc: "Le flux vidéo officiel est introuvable.",
+asianDrama: "Séries Asiatiques",
 animeManga: "Animes & Mangas",
 bollywood: "Bollywood & Inde",
 martialArts: "Arts Martiaux",
@@ -233,16 +278,81 @@ dramaPassion: "Drame & Passion",
 sciFiFantasy: "Sci-Fi & Fantastique",
 originalLang: "VO",
 recentlyViewed: "Récemment consultés",
-browserWallTitle: "Accès Sécurisé",
-browserWallDesc: "Pour vous garantir un streaming ultra-fluide et bloquer 100% des publicités intrusives, LevelMovie est optimisé exclusivement pour le navigateur Opera.",
-step1: "1. Télécharger Opera",
-step2: "2. Activer les protections",
-step2Desc: "Une fois installé, activez le bouclier anti-pub et le VPN intégré d'Opera.",
-step3: "3. Rejoindre l'écosystème",
-step3Desc: "Copiez le lien de l'application ci-dessous et ouvrez-le dans le navigateur Opera pour continuer.",
-copyLinkBtn: "Copier le lien",
+browserWallTitle: "Expérience Optimale",
+browserWallDesc: "Pour vous garantir un streaming ultra-fluide et sans publicités, LevelMovie recommande l'utilisation du navigateur Opera.",
+step1: "1. Obtenir Opera",
+step2: "2. Activer les Filtres",
+step2Desc: "Activez le bouclier anti-pub et le VPN d'Opera.",
+step3: "3. Continuer",
+step3Desc: "Copiez le code d'invitation et ouvrez-le dans Opera.",
+copyLinkBtn: "Code de la room",
 downloadApple: "App Store",
-downloadAndroid: "Play Store"
+downloadAndroid: "Play Store",
+continueWithBrowser: "Continuer vers LevelMovie",
+continueWithDefault: "Continuer vers LevelMovie",
+skipWarningPart1: "Si vous continuez avec ",
+skipWarningPart2: ", vous pourriez voir apparaître quelques publicités.",
+defaultBrowserName: "votre navigateur",
+orDivider: "OU",
+createPinTitle: "Créer un Code PIN",
+enterPinTitle: "Code PIN Requis",
+createPinDesc: "Créez un code de sécurité à 4 chiffres.",
+enterPinDesc: "Saisissez votre code PIN à 4 chiffres.",
+incorrectPin: "Code PIN incorrect.",
+pinCreated: "Filtre activé avec succès.",
+filterDisabled: "Filtre désactivé.",
+createPartyBtn: "Regarder en groupe",
+partyCreated: "Salon privé créé !",
+sendInviteMail: "Invitation",
+joinPartyAlert: "L'hôte a rejoint le salon.",
+pauseRequested: "PAUSE",
+hostPausedAt: "L'hôte s'est arrêté à environ",
+resumeCountdown: "REPRISE DANS",
+hostActionPause: "Pause",
+hostActionPlay: "Relancer",
+chatPlaceholder: "Écrire un message...",
+hostBadge: "HÔTE",
+modBadge: "MOD",
+searchFriend: "Rechercher un ami...",
+inviteFriend: "Envoyer",
+inviteSent: "Invitation envoyée",
+inviteLimitReached: "Limite de 5 partages/semaine atteinte. Copiez le code !",
+inviteAlreadySent: "Vous avez déjà invité cette personne !",
+replyTo: "Répondre à",
+ignorePause: "Ignorer",
+backToHome: "Retour à l'accueil",
+leavePartyTitle: "Fermer le Live ?",
+leavePartyDesc: "Êtes-vous sûr de vouloir fermer ce salon de visionnage ?",
+leaveBtn: "Fermer",
+invalidPartyCode: "Code invalide ou salon expiré.",
+closeLive: "FERMER LE LIVE",
+sysJoined: "a rejoint le salon.",
+sysLeft: "a quitté le salon.",
+sysPaused: "signale une pause.",
+sysPlayed: "relance la lecture.",
+sysAds: "signale une publicité.",
+roomFull: "Le salon est plein (25 max).",
+promoteMod: "Nommer Modérateur",
+muteUser: "Mettre en sourdine",
+banUser: "Bannir de la room",
+youAreBanned: "Vous avez été banni du salon.",
+leaveNoModWarning: "Vous êtes l'hôte ! Choisissez un modérateur avant de quitter, sinon le salon n'aura plus de chef.",
+closeAnyway: "Fermer quand même",
+assignModBtn: "Nommer un Mod",
+menuCancel: "Annuler",
+tutorialTitle: "Comment fonctionne le Salon ?",
+tutorialRule1: "Partagez le Code de la room à vos amis pour qu'ils vous rejoignent.",
+tutorialRule2: "Chacun a son propre lecteur. Si l'hôte met en pause, une alerte s'affiche pour tous (le film continue en fond).",
+tutorialRule3: "L'application prévient automatiquement le chat quand vous mettez en pause ou rencontrez une pub.",
+tutorialRule4: "Vous pouvez ignorer la pause à tout moment pour continuer à regarder (compte à rebours de 5s).",
+tutorialBtn: "J'ai compris, entrer",
+createPartyRoomName: "Nom du Salon",
+createPartyRoomDesc: "Donnez un nom personnalisé à votre salle de cinéma.",
+createPartyCancel: "Annuler",
+createPartySubmit: "Créer le salon",
+sessionEnded: "Le live a été fermé par l'hôte.",
+activePartyBanner: "Retourner au film",
+liveInProgress: "🔴 Live en cours"
 },
 en: {
 appTitle: "LevelMovie",
@@ -254,6 +364,15 @@ home: "Home",
 series: "TV Shows",
 movies: "Movies",
 myList: "My List",
+partyTab: "Parties",
+joinPartyTitle: "Join a Party",
+joinPartyDesc: "Enter the room code to join your friends.",
+createPartyTitle: "Create a Party",
+createPartyDesc: "Find a movie to start a watch party.",
+joinBtn: "Join",
+partyCodePlaceholder: "Access code...",
+searchPartyMoviePlaceholder: "Search for a movie to watch together...",
+watchPartyMovies: "Perfect to watch with friends",
 trending: "Global Trends",
 frenchCinema: "French Spoken Movies",
 frenchSeries: "French Spoken TV",
@@ -279,7 +398,7 @@ upcoming: "Upcoming Movies",
 nowPlaying: "Now Playing",
 play: "Play",
 details: "More Info",
-playMovie: "Play Movie",
+playMovie: "Play",
 trailer: "Trailer",
 notFound: "Content Unavailable",
 notFoundDesc: "The secure player could not find an official video for this title.",
@@ -288,16 +407,17 @@ cast: "Main Cast",
 similar: "Similar Titles",
 legalWatch: "Available on:",
 noLegal: "No legal streaming offers found in your region.",
-closePlayer: "Close Player",
+closePlayer: "Close",
 warningTitle: "Security & Ads Warning",
-warningText: "Full movies are streamed via third-party APIs. <b>LevelUp does not host any content</b>. Independent pop-ups and ads may appear on these players.",
+warningText: "Full movies are streamed via third-party APIs. <b>LevelUp does not host any content</b>.",
 warningCheckbox: "I agree to watch content from these servers.",
 warningBtn: "Start Movie",
 noDesc: "No description available.",
 addedList: "Added to favorites!",
 removedList: "Removed from list",
 publicDomain: "Classic Cinema",
-searchPlaceholder: "Search global database...",
+searchPlaceholder: "Search...",
+recentSearches: "Recent searches",
 defaultUser: "User",
 premiumActive: "Premium Account Active",
 ecosystem: "LevelIA Ecosystem",
@@ -312,10 +432,11 @@ systemVideo: "System & Video",
 videoQuality: "Video Quality",
 auto4k: "Auto (4K HDR)",
 parentalFilter: "Parental Filter",
+parentalFilterDesc: "When enabled, strictly hides explicit (18+) content.",
 systemCache: "System Cache",
 clearCache: "Clear",
 ourPartners: "Our Partners:",
-logoutBtn: "Log out of LevelMovie",
+logoutBtn: "Log out",
 logoutConfirm: "Are you sure you want to log out?",
 cancel: "Cancel",
 confirm: "Confirm",
@@ -323,40 +444,40 @@ osVersion: "LevelMovie • Architecture V1.0",
 loginSuccess: "Login successful",
 cacheCleared: "Cache cleared successfully.",
 filterApplied: "Preferences updated.",
-linkCopied: "Link copied to clipboard!",
+linkCopied: "Copied!",
 emptyList: "Your list is empty.",
 searchResults: "Search Results",
-noResults: "No results found in the global database.",
+noResults: "No results found.",
 featured: "Featured",
-externalSources: "External Sources (Free)",
-audioTip: "Tip: If the movie doesn't load or has too many ads, please switch to another server below.",
+externalSources: "External Sources",
+audioTip: "Tip: If the movie doesn't load, switch to another server below.",
 movieInfo: "Movie Info",
-server1: "Server 1 (Global) ⭐",
+server1: "Server 1 (Global)",
 server2: "Server 2 (Multi)",
 publicDomainDirect: "Public Domain",
 youtubeFull: "Direct Server (HD)",
 originalTitle: "Original Title",
 notSpecified: "Not specified",
 inProgress: "(WIP)",
-trailerPlaying: "Trailer playing",
-alreadyInList: "Already in favorites",
+trailerPlaying: "Trailer...",
+alreadyInList: "In favorites",
 addToList: "Add to My List",
 share: "Share",
-director: "Director / Writer",
+director: "Director",
 genresOrigin: "Genres & Origin",
-prodFinance: "Production / Finance",
+prodFinance: "Production",
 budget: "Budget",
 revenue: "Revenue",
-tmdbReviews: "TMDB Ratings & Reviews",
+tmdbReviews: "TMDB Ratings",
 certifiedReviews: "certified reviews",
 noCasting: "Cast not available",
 recommendationTitle: "⭐ IMPORTANT RECOMMENDATION",
-recommendationText: "For smooth playback and <b>no blocking ads</b>, we highly recommend using <b>Server 1 (Global)</b>.",
-warningDisclaimer: "Free video streams are provided by external servers independent of LevelUp. We do not host any video files. We recommend using a web browser with a native ad blocker (e.g. Opera, Brave) to avoid abusive pop-ups from other servers.",
-disclaimerCheckbox: "I understand and agree to view content from an external server.",
+recommendationText: "For smooth playback, we highly recommend using <b>Server 1 (Global)</b>.",
+warningDisclaimer: "Free video streams are provided by external servers.",
+disclaimerCheckbox: "I agree to view content from an external server.",
 acceptPlay: "Accept & Play",
-contentUnavailableDesc: "We apologize. The official video stream for this program cannot be found or has been removed from our partner servers.",
-asianDrama: "Asian Dramas (K-Dramas)",
+contentUnavailableDesc: "The official video stream cannot be found.",
+asianDrama: "Asian Dramas",
 animeManga: "Anime & Manga",
 bollywood: "Bollywood & India",
 martialArts: "Martial Arts",
@@ -368,56 +489,111 @@ dramaPassion: "Drama & Passion",
 sciFiFantasy: "Sci-Fi & Fantasy",
 originalLang: "Orig",
 recentlyViewed: "Recently Viewed",
-browserWallTitle: "Secure Access",
-browserWallDesc: "To guarantee ultra-smooth streaming and block 100% of intrusive ads, LevelMovie is optimized exclusively for the Opera browser.",
-step1: "1. Download Opera",
+browserWallTitle: "Optimal Experience",
+browserWallDesc: "For a smooth, ad-free streaming experience, LevelMovie recommends using the Opera browser.",
+step1: "1. Get Opera",
 step2: "2. Enable Protections",
-step2Desc: "Once installed, turn on Opera's native ad blocker and VPN.",
-step3: "3. Join the Ecosystem",
-step3Desc: "Copy the application link below and open it in the Opera browser to continue.",
-copyLinkBtn: "Copy Link",
+step2Desc: "Turn on Opera's native ad blocker and VPN.",
+step3: "3. Continue",
+step3Desc: "Copy the code below and open it in Opera.",
+copyLinkBtn: "Room Code",
 downloadApple: "App Store",
-downloadAndroid: "Play Store"
+downloadAndroid: "Play Store",
+continueWithBrowser: "Continue to LevelMovie",
+continueWithDefault: "Continue to LevelMovie",
+skipWarningPart1: "If you continue with ",
+skipWarningPart2: ", you might see some ads from external video players.",
+defaultBrowserName: "your browser",
+orDivider: "OR",
+createPinTitle: "Create PIN Code",
+enterPinTitle: "PIN Code Required",
+createPinDesc: "Create a 4-digit security code.",
+enterPinDesc: "Please enter your 4-digit PIN code.",
+incorrectPin: "Incorrect PIN code.",
+pinCreated: "Filter activated successfully.",
+filterDisabled: "Filter disabled.",
+createPartyBtn: "Watch Together",
+partyCreated: "Private room created!",
+sendInviteMail: "Invite",
+joinPartyAlert: "Host has joined the room.",
+pauseRequested: "PAUSE",
+hostPausedAt: "The host paused at approx.",
+resumeCountdown: "RESUMING IN",
+hostActionPause: "Pause Room",
+hostActionPlay: "Resume Playback",
+chatPlaceholder: "Write a message...",
+hostBadge: "HOST",
+modBadge: "MOD",
+searchFriend: "Search friend...",
+inviteFriend: "Send",
+inviteSent: "Invitation sent ",
+inviteLimitReached: "Limit of 5 invites/week reached. Copy the code instead!",
+inviteAlreadySent: "You already invited this person!",
+replyTo: "Replying to",
+ignorePause: "Dismiss",
+backToHome: "Back to Home",
+leavePartyTitle: "Close Live?",
+leavePartyDesc: "Are you sure you want to close this watch party?",
+leaveBtn: "Close",
+invalidPartyCode: "Invalid code or room expired.",
+closeLive: "CLOSE LIVE",
+sysJoined: "joined the room.",
+sysLeft: "left the room.",
+sysPaused: "signaled a pause.",
+sysPlayed: "resumed playback.",
+sysAds: "reported an ad.",
+roomFull: "Room is full (25 max).",
+promoteMod: "Promote to Mod",
+muteUser: "Mute user",
+banUser: "Ban from room",
+youAreBanned: "You have been banned from this room.",
+leaveNoModWarning: "You are the host! Assign a moderator before leaving, or the room will have no leader.",
+closeAnyway: "Close anyway",
+assignModBtn: "Assign a Mod",
+menuCancel: "Cancel",
+tutorialTitle: "How the Room Works?",
+tutorialRule1: "Share the Room Code with your friends so they can join.",
+tutorialRule2: "Each user has their own player. If the host pauses, an alert shows up (but the movie keeps playing).",
+tutorialRule3: "The app automatically warns the chat when you pause or see an ad.",
+tutorialRule4: "You can dismiss the pause at any time to continue watching (5s countdown).",
+tutorialBtn: "I understand, enter",
+createPartyRoomName: "Room Name",
+createPartyRoomDesc: "Give your private cinema a custom name.",
+createPartyCancel: "Cancel",
+createPartySubmit: "Create Room",
+sessionEnded: "The live session was ended by the host.",
+activePartyBanner: "Return to Movie",
+liveInProgress: "🔴 Live in progress"
 }
 };
 
-// --- STYLES GLOBAUX ---
 const globalStyles = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ANTI-SÉLECTION (Comportement Native App) */
-* {
-user-select: none;
--webkit-user-select: none;
--ms-overflow-style: none;
-scrollbar-width: none;
-}
-input, textarea {
-user-select: auto;
--webkit-user-select: auto;
-}
+* { user-select: none; -webkit-user-select: none; -ms-overflow-style: none; scrollbar-width: none; }
+input, textarea { user-select: auto; -webkit-user-select: auto; }
 
-body {
-font-family: 'Plus Jakarta Sans', sans-serif;
-background-color: #060608;
-color: white;
-overflow-x: hidden;
--webkit-tap-highlight-color: transparent;
-padding-bottom: env(safe-area-inset-bottom);
-padding-top: env(safe-area-inset-top);
-}
-::-webkit-scrollbar { display: none; }
+/* Blocage du scroll mobile UNIQUEMENT dans le salon pour clavier PWA */
+body.party-mode { overflow: hidden !important; position: fixed; width: 100%; height: 100%; }
+
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #060608; color: white; -webkit-tap-highlight-color: transparent; padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top); overflow-x: hidden; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.8); }
+
 .bg-main { background: radial-gradient(circle at 50% 0%, #15092a 0%, #060608 80%); min-height: 100vh; }
-.holo-card { background: linear-gradient(135deg, rgba(30,20,45,0.6) 0%, rgba(10,10,15,0.8) 100%); border: 1px solid rgba(168,85,247,0.2); box-shadow: inset 0 0 30px rgba(168,85,247,0.05), 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(30px); }
+.holo-card { background: linear-gradient(135deg, rgba(30,20,45,0.6) 0%, rgba(10,10,15,0.8) 100%); box-shadow: inset 0 0 30px rgba(168,85,247,0.05), 0 30px 60px rgba(0,0,0,0.8); backdrop-filter: blur(30px); }
 .markdown-pro { font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.75); text-align: justify; }
 .markdown-pro strong { color: #fff; font-weight: 700; }
 
-.splash-text {
-opacity: 0; position: absolute; transform: scale(0.85); filter: blur(15px);
-transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); text-align: center;
-}
+.splash-text { opacity: 0; position: absolute; transform: scale(0.85); filter: blur(15px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; }
 .splash-text.active { opacity: 1; transform: scale(1); filter: blur(0px); }
 .splash-text.exit { opacity: 0; transform: scale(1.2); filter: blur(30px); }
+
+/* Animation Chat Fade In */
+@keyframes fadeInChat { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.chat-msg { animation: fadeInChat 0.3s ease-out forwards; }
 `;
 
 function App() {
@@ -428,7 +604,9 @@ const [showSplash, setShowSplash] = useState(true);
 const [splashStep, setSplashStep] = useState(0);
 
 const [user, setUser] = useState(null);
+const [userPhoto, setUserPhoto] = useState(null);
 const [isAllowedBrowser, setIsAllowedBrowser] = useState(true);
+const [hasSkippedBrowserWall, setHasSkippedBrowserWall] = useState(localStorage.getItem('lm_browser_wall_skipped') === 'true');
 const [userName, setUserName] = useState('');
 const [userEmail, setUserEmail] = useState('');
 const [accessKey, setAccessKey] = useState('');
@@ -441,6 +619,13 @@ const [toasts, setToasts] = useState([]);
 const [currentCategory, setCurrentCategory] = useState('home');
 const [searchQuery, setSearchQuery] = useState('');
 const [searchResults, setSearchResults] = useState([]);
+
+const [recentSearches, setRecentSearches] = useState(JSON.parse(localStorage.getItem('lm_recent_searches') || '[]'));
+const [showRecentSearches, setShowRecentSearches] = useState(false);
+
+const [partySearchQuery, setPartySearchQuery] = useState('');
+const [partySearchResults, setPartySearchResults] = useState([]);
+
 const [heroMovie, setHeroMovie] = useState(null);
 const [pageSeed, setPageSeed] = useState(1);
 
@@ -451,15 +636,30 @@ const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
 const [watchlist, setWatchlist] = useState([]);
 const [watchlistData, setWatchlistData] = useState([]);
-
 const [recentlyViewed, setRecentlyViewed] = useState([]);
+
+const [parentalFilter, setParentalFilter] = useState(false);
+const [parentalPin, setParentalPin] = useState(null);
+const [pinModal, setPinModal] = useState({ show: false, mode: 'create', tempPin: '', error: '' });
+
+const [isNearBottom, setIsNearBottom] = useState(false);
+const [scrollProgress, setScrollProgress] = useState(0);
+const [showKey, setShowKey] = useState(false);
+
+const [partyId, setPartyId] = useState(null);
+const [partyData, setPartyData] = useState(null);
+
+const [showPartyTutorial, setShowPartyTutorial] = useState(false);
+const [pendingPartyAction, setPendingPartyAction] = useState(null);
+
+const [showCreatePartyPrompt, setShowCreatePartyPrompt] = useState(false);
+const [createPartyMovie, setCreatePartyMovie] = useState(null);
+const [customRoomName, setCustomRoomName] = useState("");
 
 const t = i18n[lang] || i18n['fr'];
 const defaultUserName = userName || t.defaultUser;
 
-// --- INITIALISATION & ANIMATION SPLASH ---
 useEffect(() => {
-// --- DÉTECTION DU NAVIGATEUR (OPERA) ---
 const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 const isOpera = /OPR|OPT|OPiOS|Opera|Opera Mini/i.test(userAgent) || (!!window.opera);
 setIsAllowedBrowser(isOpera);
@@ -470,11 +670,13 @@ const savedKey = localStorage.getItem('levelmovie_saved_key');
 const savedName = localStorage.getItem('levelmovie_user_name');
 const savedUid = localStorage.getItem('levelmovie_user_uid');
 const savedEmail = localStorage.getItem('levelmovie_user_email');
+const savedPhoto = localStorage.getItem('lm_photo');
 
 if (savedKey && savedUid) {
 setUser({ uid: savedUid });
 if (savedName) setUserName(savedName);
 if (savedEmail) setUserEmail(savedEmail);
+if (savedPhoto) setUserPhoto(savedPhoto);
 }
 
 const t1 = setTimeout(() => setSplashStep(1), 200);
@@ -494,7 +696,75 @@ window.removeEventListener('scroll', handleScroll);
 }
 }, []);
 
-// --- FETCH DONNÉES UTILISATEUR ---
+const joinPartyByCode = async (codeStr, currentUser, currentName, currentPhoto) => {
+    const uid = currentUser?.uid || user?.uid;
+    const name = currentName || defaultUserName;
+    const photo = currentPhoto || userPhoto;
+
+    if (!codeStr || !uid) return;
+    const cleanCode = codeStr.trim().toUpperCase();
+    try {
+        const pRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', cleanCode);
+        const pSnap = await getDoc(pRef);
+        if (pSnap.exists() && pSnap.data().status !== 'ended') {
+            const d = pSnap.data();
+            if (d.members && d.members.length >= 25) {
+                showToast(t.roomFull, "error");
+                localStorage.removeItem('pending_party_join');
+                return;
+            }
+
+            const res = await fetch(`${BASE_URL}/${d.mediaType}/${d.movieId}?api_key=${API_KEY}&language=${lang === 'fr' ? 'fr-FR' : 'en-US'}`);
+            const movieData = await res.json();
+            setCurrentCategory('party');
+            setPartyId(cleanCode);
+            localStorage.setItem('active_party_id', cleanCode);
+            openModal(movieData, 'play');
+            
+            // Si on n'est pas déjà dans le salon, on s'ajoute
+            if (!d.members.some(m => m.uid === uid)) {
+                await updateDoc(pRef, { 
+                    members: arrayUnion({ uid: uid, name: name, photo: photo }),
+                    messages: arrayUnion({ isSystem: true, action: 'JOIN', name: name, photo: photo, uid: uid, time: Date.now() })
+                });
+            }
+            localStorage.removeItem('pending_party_join');
+        } else {
+            showToast(t.invalidPartyCode, "error");
+            localStorage.removeItem('pending_party_join');
+        }
+    } catch(e) {}
+};
+
+const rejoinActiveParty = async (pData) => {
+    const res = await fetch(`${BASE_URL}/${pData.mediaType}/${pData.movieId}?api_key=${API_KEY}&language=${langCode}`);
+    const movieData = await res.json();
+    openModal(movieData, 'play');
+};
+
+const triggerJoinParty = (code) => {
+    const seen = localStorage.getItem('lm_tutorial_seen_final');
+    if (!seen) {
+        setPendingPartyAction({ type: 'join', code });
+        setShowPartyTutorial(true);
+    } else {
+        joinPartyByCode(code);
+    }
+};
+
+const acceptPartyTutorial = () => {
+    localStorage.setItem('lm_tutorial_seen_final', 'true');
+    setShowPartyTutorial(false);
+    if (pendingPartyAction?.type === 'create') {
+        setCreatePartyMovie(pendingPartyAction.movie);
+        setCustomRoomName(`Salon de ${defaultUserName}`);
+        setShowCreatePartyPrompt(true);
+    } else if (pendingPartyAction?.type === 'join') {
+        joinPartyByCode(pendingPartyAction.code);
+    }
+    setPendingPartyAction(null);
+};
+
 useEffect(() => {
 if (!user) return;
 
@@ -506,7 +776,6 @@ setWatchlist(localData.map(m => m.id));
 
 const fetchUserData = async () => {
 try {
-// Fetch Watchlist
 const q = collection(db, "artifacts", APP_ID, "users", user.uid, "watchlist");
 const snaps = await getDocs(q);
 const data = [];
@@ -517,18 +786,27 @@ setWatchlistData(data);
 localStorage.setItem('levelmovie_watchlist_' + user.uid, JSON.stringify(data));
 }
 
-// Fetch Preferences
 const prefSnap = await getDoc(doc(db, "artifacts", APP_ID, "users", user.uid, "preferences", "settings"));
 if (prefSnap.exists()) {
 const pref = prefSnap.data();
 if (pref.lang) { setLang(pref.lang); localStorage.setItem('levelmovie_lang', pref.lang); }
 if (pref.contentLang) { setContentLang(pref.contentLang); localStorage.setItem('levelmovie_content_lang', pref.contentLang); }
+if (pref.parentalFilter !== undefined) setParentalFilter(pref.parentalFilter);
+if (pref.parentalPin !== undefined) setParentalPin(pref.parentalPin);
 }
 
-// Fetch Recent History
 const histSnap = await getDoc(doc(db, "artifacts", APP_ID, "users", user.uid, "history", "recent"));
 if (histSnap.exists() && histSnap.data().items) {
 setRecentlyViewed(histSnap.data().items);
+}
+
+const pendingParty = localStorage.getItem('pending_party_join');
+const activeParty = localStorage.getItem('active_party_id');
+
+if (pendingParty) {
+    triggerJoinParty(pendingParty);
+} else if (activeParty) {
+    setPartyId(activeParty);
 }
 
 } catch (e) {
@@ -538,7 +816,102 @@ console.error("🔥 FIREBASE FETCH DATA ERROR:", e);
 fetchUserData();
 }, [user]);
 
-// --- TOASTS ---
+// WATCH PARTY SYNC LISTENER
+useEffect(() => {
+if (!partyId) {
+setPartyData(null);
+document.body.classList.remove('party-mode');
+return;
+}
+if (selectedMovie) document.body.classList.add('party-mode');
+
+const unsubscribe = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), (docSnap) => {
+if (docSnap.exists() && docSnap.data().status !== 'ended') {
+    const data = docSnap.data();
+    // Banned verification
+    if (data.members && !data.members.some(m => m.uid === user?.uid)) {
+        showToast(t.youAreBanned, "error");
+        setPartyId(null);
+        setPartyData(null);
+        setSelectedMovie(null);
+        localStorage.removeItem('active_party_id');
+        document.body.classList.remove('party-mode');
+        setCurrentCategory('home');
+        return;
+    }
+    setPartyData(data);
+} else {
+    if (partyData) showToast(t.sessionEnded, "info");
+    setPartyId(null);
+    setPartyData(null);
+    setSelectedMovie(null);
+    localStorage.removeItem('active_party_id');
+    document.body.classList.remove('party-mode');
+    setCurrentCategory('home');
+}
+});
+return () => {
+    unsubscribe();
+    document.body.classList.remove('party-mode');
+};
+}, [partyId, selectedMovie, user]);
+
+useEffect(() => {
+const checkScroll = (e) => {
+const target = e.target;
+let currentScroll = 0;
+let maxScroll = 1;
+
+if (target === document || target === window) {
+const scrollPos = window.scrollY + window.innerHeight;
+const scrollHeight = document.documentElement.scrollHeight;
+setIsNearBottom(scrollHeight - scrollPos < 150);
+
+currentScroll = window.scrollY;
+maxScroll = scrollHeight - window.innerHeight;
+} 
+else if (target && target.classList && target.classList.contains('overflow-y-auto')) {
+const isModalNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 150;
+setIsNearBottom(isModalNearBottom);
+
+currentScroll = target.scrollTop;
+maxScroll = target.scrollHeight - target.clientHeight;
+}
+
+if (maxScroll > 0) {
+setScrollProgress(Math.min(100, Math.max(0, (currentScroll / maxScroll) * 100)));
+} else {
+setScrollProgress(0);
+}
+};
+
+window.addEventListener('scroll', checkScroll, true);
+window.addEventListener('resize', checkScroll);
+return () => {
+window.removeEventListener('scroll', checkScroll, true);
+window.removeEventListener('resize', checkScroll);
+};
+}, []);
+
+const executeSmartScroll = () => {
+const modal = document.querySelector('.overflow-y-auto');
+if (modal && getComputedStyle(modal).overflowY === 'auto' && modal.scrollHeight > modal.clientHeight) {
+const isModalNearBottom = modal.scrollHeight - modal.scrollTop - modal.clientHeight < 150;
+if (isModalNearBottom) {
+modal.scrollTo({ top: 0, behavior: 'smooth' });
+} else {
+modal.scrollBy({ top: modal.clientHeight * 0.7, behavior: 'smooth' });
+}
+return;
+}
+
+if (isNearBottom) {
+window.scrollTo({ top: 0, behavior: 'smooth' });
+} else {
+window.scrollBy({ top: window.innerHeight * 0.7, behavior: 'smooth' });
+}
+};
+
 const showToast = useCallback((msg, type = 'info') => {
 if(type === 'info') return;
 const id = Date.now() + Math.random();
@@ -548,7 +921,6 @@ setToasts(prev => prev.filter(toastItem => toastItem.id !== id));
 }, 3000);
 }, []);
 
-// --- SAUVEGARDE PRÉFÉRENCES CLOUD ---
 const syncPreferencesToDb = async (newPrefs) => {
 if (!user) return;
 try {
@@ -556,7 +928,56 @@ await setDoc(doc(db, "artifacts", APP_ID, "users", user.uid, "preferences", "set
 } catch(e) {}
 };
 
-// --- ACTIONS LANGUE / FILTRES (BOUTONS RÉPARÉS) ---
+const handleParentalToggle = () => {
+if (!parentalFilter) {
+setPinModal({ show: true, mode: 'create', tempPin: '', error: '' });
+} else {
+setPinModal({ show: true, mode: 'verify', tempPin: '', error: '' });
+}
+};
+
+const handlePinInput = (val) => {
+setPinModal(prev => ({ ...prev, tempPin: val, error: '' }));
+if (val.length === 4) {
+if (pinModal.mode === 'create') {
+setParentalPin(val);
+setParentalFilter(true);
+syncPreferencesToDb({ parentalFilter: true, parentalPin: val });
+setPinModal({ show: false, mode: 'create', tempPin: '', error: '' });
+showToast(t.pinCreated, 'success');
+} else if (pinModal.mode === 'verify') {
+if (val === parentalPin) {
+setParentalFilter(false);
+setParentalPin(null);
+syncPreferencesToDb({ parentalFilter: false, parentalPin: null });
+setPinModal({ show: false, mode: 'verify', tempPin: '', error: '' });
+showToast(t.filterDisabled, 'success');
+} else {
+setPinModal(prev => ({ ...prev, error: t.incorrectPin }));
+}
+}
+}
+};
+
+const handleClearCache = async () => {
+    setRecentlyViewed([]);
+    setSearchQuery('');
+    setSearchResults([]);
+    setPartySearchQuery('');
+    setPartySearchResults([]);
+    setRecentSearches([]);
+    localStorage.removeItem('lm_recent_searches');
+    localStorage.removeItem('levelmovie_watchlist_' + user?.uid);
+    
+    if (user) {
+        try {
+            await setDoc(doc(db, "artifacts", APP_ID, "users", user.uid, "history", "recent"), { items: [] });
+        } catch(e) {}
+    }
+    
+    showToast(t.cacheCleared, 'success');
+};
+
 const handleLangToggle = () => {
 const newLang = lang === 'fr' ? 'en' : 'fr';
 setLang(newLang);
@@ -580,7 +1001,6 @@ if (contentLang === 'en') return t.usEnglish;
 return t.worldAll;
 };
 
-// --- AUTHENTIFICATION ---
 const formatAccessKey = (val) => {
 let formatted = val.toUpperCase().replace(/[^A-Z0-9-]/g, '');
 setAccessKey(formatted.substring(0, 16));
@@ -602,27 +1022,35 @@ if (foundUserData) {
 const email = foundUserData.owner || foundUserData.email || "email@inconnu.com";
 const name = foundUserData.name || foundUserData.displayName || email.split('@')[0] || t.defaultUser;
 const uid = foundUserData.uid || accessKey;
+const photo = localStorage.getItem('lm_photo');
 
+setIsLoadingAuth(false);
 setIsLoggingIn(true);
 
 setTimeout(() => {
 setUser({ uid });
 setUserName(name);
 setUserEmail(email);
+if (photo) setUserPhoto(photo);
 localStorage.setItem('levelmovie_saved_key', accessKey);
 localStorage.setItem('levelmovie_user_name', name);
 localStorage.setItem('levelmovie_user_email', email);
 localStorage.setItem('levelmovie_user_uid', uid);
 showToast(t.loginSuccess, 'success');
 setIsLoggingIn(false);
+
+const pendingParty = localStorage.getItem('pending_party_join');
+if (pendingParty) { triggerJoinParty(pendingParty); }
+
 }, 3000);
 } else {
 setAuthError(t.enterKey || "Clé invalide.");
+setIsLoadingAuth(false);
 }
 } catch (error) {
 setAuthError("Erreur serveur Firebase.");
-}
 setIsLoadingAuth(false);
+}
 };
 
 const handleLogout = () => {
@@ -631,26 +1059,69 @@ setUser(null);
 setAccessKey('');
 setShowSettings(false);
 setShowLogoutConfirm(false);
+setHasSkippedBrowserWall(false);
 };
 
-// --- RECHERCHE ---
+const addRecentSearch = (query) => {
+    const q = query.trim();
+    if (!q || q.length < 3) return;
+    let updated = [q, ...recentSearches.filter(item => item.toLowerCase() !== q.toLowerCase())].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('lm_recent_searches', JSON.stringify(updated));
+};
+
+const removeRecentSearch = (query, e) => {
+    e.stopPropagation();
+    let updated = recentSearches.filter(item => item !== query);
+    setRecentSearches(updated);
+    localStorage.setItem('lm_recent_searches', JSON.stringify(updated));
+};
+
+// Global Search
 useEffect(() => {
-if (searchQuery.trim() === '') {
+if (searchQuery.trim() === '' || currentCategory === 'party') {
 setSearchResults([]);
 return;
 }
 const delayDebounceFn = setTimeout(async () => {
 const langCode = lang === 'fr' ? 'fr-FR' : 'en-US';
+const includeAdult = parentalFilter ? 'false' : 'true'; 
 try {
-const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&language=${langCode}&query=${encodeURIComponent(searchQuery)}`);
+const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&language=${langCode}&query=${encodeURIComponent(searchQuery)}&include_adult=${includeAdult}`);
 const data = await res.json();
-setSearchResults(data.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || []);
+let results = data.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
+if (parentalFilter) {
+results = results.filter(m => m.adult !== true); 
+}
+setSearchResults(results);
+addRecentSearch(searchQuery);
 } catch (e) {}
 }, 500);
 return () => clearTimeout(delayDebounceFn);
-}, [searchQuery, lang]);
+}, [searchQuery, lang, parentalFilter, currentCategory]);
 
-// --- ACTIONS GLOBALES ---
+// Party Movie Search
+useEffect(() => {
+if (partySearchQuery.trim() === '' || currentCategory !== 'party') {
+setPartySearchResults([]);
+return;
+}
+const delayDebounceFn = setTimeout(async () => {
+const langCode = lang === 'fr' ? 'fr-FR' : 'en-US';
+const includeAdult = parentalFilter ? 'false' : 'true'; 
+try {
+const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=${langCode}&query=${encodeURIComponent(partySearchQuery)}&include_adult=${includeAdult}`);
+const data = await res.json();
+let results = data.results || [];
+if (parentalFilter) {
+results = results.filter(m => m.adult !== true); 
+}
+setPartySearchResults(results);
+} catch (e) {}
+}, 500);
+return () => clearTimeout(delayDebounceFn);
+}, [partySearchQuery, lang, parentalFilter, currentCategory]);
+
 const toggleWatchlist = async (movie) => {
 if (!user) return;
 const isAdded = watchlist.includes(movie.id);
@@ -697,6 +1168,110 @@ await setDoc(doc(db, "artifacts", APP_ID, "users", user.uid, "history", "recent"
 } catch(e) {}
 };
 
+const handleCreateParty = async (movie, roomName) => {
+if (!user) return;
+const newPartyId = 'LVL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+try {
+await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', newPartyId), {
+hostUid: user.uid,
+modUid: null,
+movieId: movie.id,
+mediaType: movie.first_air_date ? 'tv' : 'movie',
+title: movie.title || movie.name,
+roomName: roomName || `Salon de ${defaultUserName}`,
+status: 'idle',
+syncTime: Date.now(),
+currentOffset: 0,
+members: [{ uid: user.uid, name: defaultUserName, photo: userPhoto }],
+messages: []
+});
+setPartyId(newPartyId);
+localStorage.setItem('active_party_id', newPartyId);
+setCurrentCategory('party'); 
+setModalMode('play');
+setShowCreatePartyPrompt(false);
+setCreatePartyMovie(null);
+showToast(t.partyCreated, 'success');
+} catch(e) {
+console.error(e);
+}
+};
+
+const triggerCreateParty = (movie) => {
+    const seen = localStorage.getItem('lm_tutorial_seen_final');
+    if (!seen) {
+        setPendingPartyAction({ type: 'create', movie });
+        setShowPartyTutorial(true);
+    } else {
+        setCreatePartyMovie(movie);
+        setCustomRoomName(`Salon de ${defaultUserName}`);
+        setShowCreatePartyPrompt(true);
+    }
+};
+
+const handleSendPartyMessage = async (text, replyTo = null) => {
+if (!partyId || !text.trim()) return;
+try {
+const msg = { uid: user.uid, name: defaultUserName, photo: userPhoto, text: text.trim(), time: Date.now() };
+if (replyTo) msg.replyTo = replyTo;
+
+await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+messages: arrayUnion(msg)
+});
+} catch(e) {}
+};
+
+const sendSystemAction = async (actionType) => {
+if (!partyId) return;
+try {
+await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+messages: arrayUnion({ isSystem: true, action: actionType, name: defaultUserName, photo: userPhoto, uid: user.uid, time: Date.now() })
+});
+} catch(e) {}
+};
+
+const handlePartySyncAction = async (action, currentOffset = 0) => {
+if (!partyId) return;
+try {
+await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+status: action,
+syncTime: Date.now(),
+currentOffset: currentOffset
+});
+} catch(e) {}
+};
+
+const handleLeaveParty = async () => {
+if (!partyId || !partyData) return;
+try {
+    if (user.uid === partyData.hostUid) {
+        if (partyData.modUid) {
+            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+                hostUid: partyData.modUid,
+                modUid: null,
+                messages: arrayUnion({ isSystem: true, action: 'LEAVE', name: defaultUserName, photo: userPhoto, uid: user.uid, time: Date.now() })
+            });
+        } else {
+            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), { status: 'ended' });
+        }
+    } else {
+        const memberToRemove = partyData.members.find(m => m.uid === user.uid);
+        if (memberToRemove) {
+            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+                members: arrayRemove(memberToRemove),
+                messages: arrayUnion({ isSystem: true, action: 'LEAVE', name: defaultUserName, photo: userPhoto, uid: user.uid, time: Date.now() })
+            });
+        }
+    }
+    setPartyId(null);
+    setPartyData(null);
+    setSelectedMovie(null);
+    localStorage.removeItem('active_party_id');
+    document.body.classList.remove('party-mode');
+    setCurrentCategory('home');
+} catch(e) {}
+};
+
 const openModal = (movie, mode = 'info') => {
 setSelectedMovie(movie);
 setModalMode(mode);
@@ -704,53 +1279,59 @@ addToHistory(movie);
 };
 
 const handleNavCategory = (cat) => {
+if (currentCategory === cat && (cat === 'home' || cat === 'movie' || cat === 'tv')) {
+    setPageSeed(Math.floor(Math.random() * 5) + 1);
+} else {
+    setPageSeed(1);
+}
 setCurrentCategory(cat);
 setSearchQuery('');
+setPartySearchQuery('');
 window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// --- COMPILATION DES LIGNES MONDIALES ---
 const langCode = lang === 'fr' ? 'fr-FR' : 'en-US';
 const langFilter = contentLang !== 'all' ? `&with_original_language=${contentLang}` : '';
+const adultFilterParams = parentalFilter ? '&include_adult=false' : '&include_adult=true';
+const buildUrl = (base) => `${base}?api_key=${API_KEY}&language=${langCode}${langFilter}${adultFilterParams}`;
+const buildUrlNoFilter = (base) => `${base}?api_key=${API_KEY}&language=${langCode}${adultFilterParams}`;
+
 const rowsConfig = [];
 
-const buildUrl = (base) => `${base}?api_key=${API_KEY}&language=${langCode}${langFilter}`;
-const buildUrlNoFilter = (base) => `${base}?api_key=${API_KEY}&language=${langCode}`;
-
-if (currentCategory === 'home' || currentCategory === 'movie') {
+if (currentCategory === 'home' || currentCategory === 'movie' || currentCategory === 'party') {
 rowsConfig.push(
-{ title: t.trending, url: buildUrlNoFilter('/trending/movie/week'), large: true },
-{ title: t.frenchCinema, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_spoken_languages=fr&sort_by=popularity.desc`, large: false },
-{ title: t.upcoming, url: buildUrl('/movie/upcoming'), large: false },
-{ title: t.nowPlaying, url: buildUrl('/movie/now_playing'), large: false },
-{ title: t.topRated, url: buildUrl('/movie/top_rated'), large: false },
-{ title: t.freeVOD, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_watch_monetization_types=free&watch_region=FR&sort_by=popularity.desc${langFilter}`, large: false },
-{ title: t.publicDomain, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&primary_release_date.lte=1970-01-01&sort_by=vote_average.desc&vote_count.gte=200${langFilter}`, large: true },
-{ title: t.asianDrama, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_original_language=ko`, large: false },
-{ title: t.animeManga, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_genres=16&with_original_language=ja`, large: false },
-{ title: t.bollywood, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_original_language=hi`, large: false },
-{ title: t.action, url: buildUrl('/discover/movie') + '&with_genres=28', large: false },
-{ title: t.martialArts, url: buildUrl('/discover/movie') + '&with_genres=28&with_keywords=779', large: false },
-{ title: t.scifi, url: buildUrl('/discover/movie') + '&with_genres=878', large: false },
-{ title: t.comedy, url: buildUrl('/discover/movie') + '&with_genres=35', large: false },
-{ title: t.horror, url: buildUrl('/discover/movie') + '&with_genres=27', large: false },
-{ title: t.romance, url: buildUrl('/discover/movie') + '&with_genres=10749', large: false },
-{ title: t.docs, url: buildUrl('/discover/movie') + '&with_genres=99', large: false }
+{ title: t.trending, url: buildUrlNoFilter('/trending/movie/week'), large: true, shuffle: false },
+{ title: t.frenchCinema, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_spoken_languages=fr&sort_by=popularity.desc${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.upcoming, url: buildUrl('/movie/upcoming'), large: false, shuffle: false },
+{ title: t.nowPlaying, url: buildUrl('/movie/now_playing'), large: false, shuffle: false },
+{ title: t.topRated, url: buildUrl('/movie/top_rated'), large: false, shuffle: false },
+{ title: t.freeVOD, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_watch_monetization_types=free&watch_region=FR&sort_by=popularity.desc${langFilter}${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.publicDomain, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&primary_release_date.lte=1970-01-01&sort_by=vote_average.desc&vote_count.gte=200${langFilter}${adultFilterParams}`, large: true, shuffle: true },
+{ title: t.asianDrama, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_original_language=ko${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.animeManga, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_genres=16&with_original_language=ja${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.bollywood, url: `/discover/movie?api_key=${API_KEY}&language=${langCode}&with_original_language=hi${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.action, url: buildUrl('/discover/movie') + '&with_genres=28', large: false, shuffle: true },
+{ title: t.martialArts, url: buildUrl('/discover/movie') + '&with_genres=28&with_keywords=779', large: false, shuffle: true },
+{ title: t.scifi, url: buildUrl('/discover/movie') + '&with_genres=878', large: false, shuffle: true },
+{ title: t.comedy, url: buildUrl('/discover/movie') + '&with_genres=35', large: false, shuffle: true },
+{ title: t.horror, url: buildUrl('/discover/movie') + '&with_genres=27', large: false, shuffle: true },
+{ title: t.romance, url: buildUrl('/discover/movie') + '&with_genres=10749', large: false, shuffle: true },
+{ title: t.docs, url: buildUrl('/discover/movie') + '&with_genres=99', large: false, shuffle: true }
 );
 } else if (currentCategory === 'tv') {
 rowsConfig.push(
-{ title: t.trending, url: buildUrlNoFilter('/trending/tv/week'), large: true },
-{ title: t.frenchSeries, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_spoken_languages=fr&sort_by=popularity.desc`, large: false },
-{ title: t.asianDrama, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_original_language=ko`, large: false },
-{ title: t.animeJp, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_genres=16&with_original_language=ja`, large: false },
-{ title: t.topRated, url: buildUrl('/tv/top_rated'), large: false },
-{ title: t.action, url: buildUrl('/discover/tv') + '&with_genres=10759', large: false },
-{ title: t.comedy, url: buildUrl('/discover/tv') + '&with_genres=35', large: false },
-{ title: t.crime, url: buildUrl('/discover/tv') + '&with_genres=80', large: false },
-{ title: t.dramaPassion, url: buildUrl('/discover/tv') + '&with_genres=18', large: false },
-{ title: t.mystery, url: buildUrl('/discover/tv') + '&with_genres=9648', large: false },
-{ title: t.sciFiFantasy, url: buildUrl('/discover/tv') + '&with_genres=10765', large: false },
-{ title: t.docs, url: buildUrl('/discover/tv') + '&with_genres=99', large: false }
+{ title: t.trending, url: buildUrlNoFilter('/trending/tv/week'), large: true, shuffle: false },
+{ title: t.frenchSeries, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_spoken_languages=fr&sort_by=popularity.desc${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.asianDrama, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_original_language=ko${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.animeJp, url: `/discover/tv?api_key=${API_KEY}&language=${langCode}&with_genres=16&with_original_language=ja${adultFilterParams}`, large: false, shuffle: true },
+{ title: t.topRated, url: buildUrl('/tv/top_rated'), large: false, shuffle: false },
+{ title: t.action, url: buildUrl('/discover/tv') + '&with_genres=10759', large: false, shuffle: true },
+{ title: t.comedy, url: buildUrl('/discover/tv') + '&with_genres=35', large: false, shuffle: true },
+{ title: t.crime, url: buildUrl('/discover/tv') + '&with_genres=80', large: false, shuffle: true },
+{ title: t.dramaPassion, url: buildUrl('/discover/tv') + '&with_genres=18', large: false, shuffle: true },
+{ title: t.mystery, url: buildUrl('/discover/tv') + '&with_genres=9648', large: false, shuffle: true },
+{ title: t.sciFiFantasy, url: buildUrl('/discover/tv') + '&with_genres=10765', large: false, shuffle: true },
+{ title: t.docs, url: buildUrl('/discover/tv') + '&with_genres=99', large: false, shuffle: true }
 );
 }
 
@@ -774,89 +1355,113 @@ return (
 }
 
 // --- ÉCRAN DE BLOCAGE OFFICIEL (FORCER OPERA) ---
-if (!isAllowedBrowser && !showSplash) {
-return (
-<div className="bg-[#060608] flex items-center justify-center min-h-screen p-4 sm:p-8 fixed inset-0 z-[6000] overflow-y-auto no-scrollbar">
-<style>{globalStyles}</style>
+if (!isAllowedBrowser && !showSplash && !hasSkippedBrowserWall) {
+    const browserData = getBrowserData();
 
-{/* Ambiances lumineuses de fond (très subtiles) */}
-<div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#a855f7]/10 rounded-full blur-[120px] pointer-events-none"></div>
-<div className="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+    return (
+    <div className="bg-[#060608] flex flex-col items-center justify-center h-[100dvh] w-full p-4 fixed inset-0 z-[6000] overflow-hidden">
+        <style>{globalStyles}</style>
+        <button onClick={handleLangToggle} className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center justify-center min-w-[60px] gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all text-white/70 hover:text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest backdrop-blur-md z-[7000] shadow-lg outline-none">
+            <Globe className="w-3 h-3 md:w-4 md:h-4 text-[#a855f7]" /> {lang === 'fr' ? 'EN' : 'FR'}
+        </button>
+        <div className="fixed top-[-10%] left-[-10%] w-[400px] h-[400px] bg-[#a855f7]/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-{/* TOASTS */}
-<div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 pointer-events-none items-end">
-{toasts.map(toast => (
-<div key={toast.id} className="flex items-center gap-4 p-4 rounded-2xl backdrop-blur-3xl border shadow-2xl transition-all duration-500 animate-in slide-in-from-right fade-in border-green-500/30 bg-[#0a0a0f]/95 text-green-50 min-w-[280px] pointer-events-auto">
-<CheckCircle className="w-5 h-5 text-green-400" /> <span className="text-[12px] font-bold tracking-wide">{toast.msg}</span>
-</div>
-))}
-</div>
+        <div className="w-full max-w-5xl z-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700 h-full justify-center">
+            <div className="flex justify-center mb-2 relative shrink-0">
+                <div className="absolute inset-0 bg-[#a855f7]/20 blur-xl rounded-full scale-125"></div>
+                <LevelMovieLogo className="w-12 h-12 md:w-14 md:h-14 relative z-10 drop-shadow-[0_0_15px_rgba(168,85,247,0.4)] text-[#a855f7]" />
+            </div>
 
-<div className="w-full max-w-lg z-10 flex flex-col animate-in fade-in slide-in-from-bottom-8 duration-700 pb-10 pt-6">
+            <h1 className="text-lg md:text-2xl font-black text-center mb-1 tracking-tight text-white drop-shadow-md shrink-0">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">{t.browserWallTitle}</span>
+            </h1>
+            <p className="text-center text-white/60 text-[10px] md:text-[11px] mb-4 md:mb-5 max-w-sm md:max-w-lg mx-auto leading-snug shrink-0 px-2">
+                {t.browserWallDesc}
+            </p>
 
-<h1 className="text-3xl md:text-4xl font-black text-center mb-4 tracking-tight text-white drop-shadow-md mt-6">
-<span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">{t.browserWallTitle}</span>
-</h1>
-<p className="text-center text-white/60 text-[13px] md:text-sm mb-12 max-w-sm mx-auto leading-relaxed">
-{t.browserWallDesc}
-</p>
+            <div className="flex flex-col md:flex-row w-full max-w-4xl bg-white/[0.02] border border-white/10 rounded-3xl p-3 md:p-5 backdrop-blur-2xl shadow-2xl shrink-0">
+                {/* Opera Zone */}
+                <div className="flex-1 flex flex-col shrink-0 md:pr-2">
+                    <h2 className="text-[#a855f7] font-black text-[10px] md:text-[11px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3" /> Recommandé
+                    </h2>
+                    <div className="space-y-2 shrink-0">
+                        <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2.5 backdrop-blur-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center font-black text-[9px] text-white">1</div>
+                                <h3 className="font-bold text-white/90 text-[10px] md:text-[11px] tracking-wide">{t.step1}</h3>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pl-7">
+                                <a href="https://apps.apple.com/app/opera-browser/id1411869974" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 bg-white/90 text-black hover:bg-white py-1.5 rounded-lg text-[9px] font-black transition-all active:scale-95 no-underline outline-none">
+                                    <AppleLogoSVG className="w-3.5 h-3.5" /> <span className="truncate">{t.downloadApple}</span>
+                                </a>
+                                <a href="https://play.google.com/store/apps/details?id=com.opera.browser" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 bg-white/10 text-white hover:bg-white/20 py-1.5 rounded-lg text-[9px] font-bold transition-all active:scale-95 no-underline outline-none">
+                                    <PlayStoreLogoSVG className="w-3.5 h-3.5" /> <span className="truncate">{t.downloadAndroid}</span>
+                                </a>
+                            </div>
+                        </div>
 
-{/* Étapes (Design Type iOS / Widget) */}
-<div className="space-y-5">
-   
-{/* Étape 1 */}
-<div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 md:p-6 backdrop-blur-xl shadow-lg transition-transform hover:bg-white/[0.05]">
-<div className="flex items-center gap-4 mb-5">
-<div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center font-black text-sm border border-white/10 shadow-inner">1</div>
-<h3 className="font-bold text-white text-[15px] tracking-wide">{t.step1}</h3>
-</div>
-<div className="grid grid-cols-2 gap-3 pl-[3.5rem]">
-<a href="https://apps.apple.com/app/opera-browser/id1411869974" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-200 py-3 px-2 rounded-2xl text-[11px] md:text-xs font-black transition-all shadow-md active:scale-95 no-underline outline-none">
-<AppleLogoSVG className="w-4 h-4" /> {t.downloadApple}
-</a>
-<a href="https://play.google.com/store/apps/details?id=com.opera.browser" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 hover:bg-white/20 py-3 px-2 rounded-2xl text-[11px] md:text-xs font-bold transition-all shadow-md active:scale-95 no-underline outline-none">
-<PlayStoreLogoSVG className="w-4 h-4" /> {t.downloadAndroid}
-</a>
-</div>
-</div>
+                        <div className="bg-white/[0.03] border border-white/5 rounded-xl p-2.5 backdrop-blur-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center font-black text-[9px] text-white shrink-0">2</div>
+                                <div>
+                                    <h3 className="font-bold text-white/90 text-[10px] md:text-[11px] tracking-wide">{t.step2}</h3>
+                                    <p className="text-white/40 text-[8px] md:text-[9px] leading-tight mt-0.5">{t.step2Desc}</p>
+                                </div>
+                            </div>
+                        </div>
 
-{/* Étape 2 */}
-<div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 md:p-6 backdrop-blur-xl shadow-lg transition-transform hover:bg-white/[0.05]">
-<div className="flex items-start gap-4">
-<div className="w-10 h-10 rounded-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center font-black text-sm border border-white/10 shadow-inner shrink-0">2</div>
-<div>
-<h3 className="font-bold text-white text-[15px] tracking-wide mb-1.5 mt-2">{t.step2}</h3>
-<p className="text-white/50 text-xs leading-relaxed">{t.step2Desc}</p>
-</div>
-</div>
-</div>
+                        <div className="bg-[#a855f7]/10 border border-[#a855f7]/20 rounded-xl p-2.5 backdrop-blur-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-5 h-5 rounded-full bg-[#a855f7] flex items-center justify-center font-black text-[9px] text-white shrink-0">3</div>
+                                <div>
+                                    <h3 className="font-bold text-white text-[10px] md:text-[11px] tracking-wide">{t.step3}</h3>
+                                    <p className="text-[#a855f7]/70 text-[8px] md:text-[9px] leading-tight mt-0.5">{t.step3Desc}</p>
+                                </div>
+                            </div>
+                            <div className="pl-7">
+                                <div className="flex justify-between items-center bg-black/30 border border-white/5 p-1 pl-2 rounded-lg">
+                                    <div className="flex items-center gap-1.5">
+                                        <LevelMovieLogo className="w-3 h-3 text-[#a855f7]" />
+                                        <span className="text-white/90 font-black tracking-widest text-[8px] uppercase">LevelMovie</span>
+                                    </div>
+                                    <button onClick={() => { copyToClipboardFallback('https://ecosystem-of-levelup.vercel.app/movie.html'); showToast(t.linkCopied, 'success'); }} className="bg-[#a855f7] hover:bg-purple-500 text-white px-2.5 py-1 rounded-md transition-colors flex items-center justify-center text-[8px] font-bold tracking-widest uppercase active:scale-95 outline-none">
+                                        <Copy className="w-2.5 h-2.5 md:mr-1"/> <span className="hidden sm:inline">{t.copyLinkBtn}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-{/* Étape 3 */}
-<div className="bg-gradient-to-b from-[#a855f7]/10 to-transparent border border-[#a855f7]/30 rounded-[2rem] p-5 md:p-6 backdrop-blur-xl shadow-[0_0_30px_rgba(168,85,247,0.1)]">
-<div className="flex items-start gap-4 mb-4">
-<div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#a855f7] to-[#8b5cf6] flex items-center justify-center font-black text-white text-sm shadow-[0_0_15px_rgba(168,85,247,0.5)] shrink-0">3</div>
-<div>
-<h3 className="font-bold text-white text-[15px] tracking-wide mb-1.5 mt-2">{t.step3}</h3>
-<p className="text-white/60 text-xs leading-relaxed">{t.step3Desc}</p>
-</div>
-</div>
-<div className="pl-[3.5rem] mt-4">
-<div className="flex justify-between items-center bg-black/40 border border-white/10 p-2 pl-4 rounded-2xl shadow-inner hover:bg-white/5 transition-colors">
-<div className="flex items-center gap-3">
-<LevelMovieLogo className="w-5 h-5 text-[#a855f7]" />
-<span className="text-white font-black tracking-widest text-[11px] md:text-xs uppercase">LevelMovie</span>
-</div>
-<button onClick={() => { copyToClipboardFallback('https://levelmovie-mu.vercel.app'); showToast(t.linkCopied, 'success'); }} className="bg-[#a855f7] hover:bg-purple-500 text-white px-5 py-3 rounded-xl transition-colors flex items-center justify-center text-[10px] md:text-[11px] font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(168,85,247,0.4)] active:scale-95 outline-none shrink-0">
-<Copy className="w-4 h-4 md:mr-2"/> <span className="hidden md:inline">{t.copyLinkBtn}</span>
-</button>
-</div>
-</div>
-</div>
+                <div className="flex flex-row md:flex-col items-center justify-center px-2 py-3 md:py-0 shrink-0">
+                    <div className="flex-1 w-full md:w-px md:h-full bg-white/5"></div>
+                    <span className="px-2 py-1 text-[8px] font-black text-white/30 uppercase tracking-widest bg-black rounded-full border border-white/5 my-0 md:my-2">OU</span>
+                    <div className="flex-1 w-full md:w-px md:h-full bg-white/5"></div>
+                </div>
 
-</div>
-</div>
-</div>
-);
+                {/* Warning Zone */}
+                <div className="flex-1 flex flex-col shrink-0 md:pl-2">
+                    <h2 className="text-white/70 font-black text-[10px] md:text-[11px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                        {renderBrowserIcon(browserData.id, "w-3.5 h-3.5")} Votre navigateur
+                    </h2>
+
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 md:p-5 flex-1 flex flex-col justify-center relative">
+                        <p className="text-[9.5px] md:text-[10.5px] text-white/60 leading-relaxed text-justify mb-4">
+                            {t.skipWarningPart1}<strong className="text-white/90">{browserData.name || t.defaultBrowserName}</strong>{t.skipWarningPart2}
+                            <br/><br/>
+                            <span className="text-white/40 italic text-[8.5px] md:text-[9.5px]">Pour une expérience sans aucune interruption, l'installation d'Opera reste conseillée.</span>
+                        </p>
+
+                        <button onClick={() => { setHasSkippedBrowserWall(true); localStorage.setItem('lm_browser_wall_skipped', 'true'); }} className="w-full py-2.5 px-4 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/80 hover:text-white text-[9.5px] md:text-[10.5px] font-bold uppercase tracking-widest transition-all active:scale-95 outline-none mt-auto">
+                            <span>{t.continueWithBrowser}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    );
 }
 
 if (isLoggingIn) {
@@ -891,13 +1496,21 @@ className="absolute top-6 right-6 flex items-center justify-center min-w-[60px] 
 <p className="text-[11px] font-bold text-[#a855f7] uppercase tracking-[0.1em] mb-2 flex items-center justify-center gap-2">
 <Shield className="w-4 h-4" /> {t.enterKey}
 </p>
+<div className="relative w-full">
 <input
-type="text"
+type={showKey ? "text" : "password"}
 value={accessKey}
 onChange={(e) => formatAccessKey(e.target.value)}
 placeholder="LVL-XXXXX-XXXXX"
-className="w-full bg-[#030305] border border-[#a855f7]/40 rounded-xl py-4 px-5 text-center text-white font-mono text-base tracking-widest outline-none focus:border-[#a855f7] transition-all uppercase shadow-inner"
+className="w-full bg-[#030305] border border-[#a855f7]/40 rounded-xl py-4 pl-5 pr-12 text-center text-white font-mono text-base tracking-widest outline-none focus:border-[#a855f7] transition-all uppercase shadow-inner"
 />
+<button 
+onClick={() => setShowKey(!showKey)} 
+className="absolute right-4 top-1/2 -translate-y-1/2 text-[#a855f7]/60 hover:text-[#a855f7] transition-colors outline-none"
+>
+{showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+</button>
+</div>
 <button
 onClick={handleLogin}
 disabled={isLoadingAuth}
@@ -906,7 +1519,7 @@ className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white py-4 r
 {isLoadingAuth ? t.verifyLoading : t.verifyKey}
 </button>
 <div className="mt-4 flex justify-center">
-<a href="https://levelupia0-debug.github.io/levelupia/" target="_blank" rel="noreferrer" className="flex items-center justify-center w-full gap-2 px-6 py-4 rounded-xl bg-white/10 border border-white/20 text-[11px] font-black uppercase tracking-[0.1em] text-white/90 hover:text-white hover:bg-white/20 hover:border-[#a855f7] transition-all duration-300 no-underline outline-none shadow-md">
+<a href="https://ecosystem-of-levelup.vercel.app/" target="_blank" rel="noreferrer" className="flex items-center justify-center w-full gap-2 px-6 py-4 rounded-xl bg-white/10 border border-white/20 text-[11px] font-black uppercase tracking-[0.1em] text-white/90 hover:text-white hover:bg-white/20 hover:border-[#a855f7] transition-all duration-300 no-underline outline-none shadow-md">
 <Key className="w-4 h-4 text-[#a855f7]" /> <span>{t.forgotKey}</span>
 </a>
 </div>
@@ -920,6 +1533,108 @@ className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#a855f7] text-white py-4 r
 return (
 <div className="bg-main text-white min-h-screen">
 <style>{globalStyles}</style>
+
+{/* TUTORIEL DE LA WATCH PARTY (POUR LES NOUVEAUX) */}
+{showPartyTutorial && (
+    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-[#a855f7]/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-[#a855f7]/20">
+                <Info className="w-8 h-8 text-[#a855f7]" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white mb-6 uppercase tracking-widest text-center">{t.tutorialTitle}</h3>
+            
+            <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-xl">🎟️</span>
+                    <p className="text-white/80 text-xs md:text-sm leading-relaxed">{t.tutorialRule1}</p>
+                </div>
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-xl">👑</span>
+                    <p className="text-white/80 text-xs md:text-sm leading-relaxed">{t.tutorialRule2}</p>
+                </div>
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-xl">⚠️</span>
+                    <p className="text-white/80 text-xs md:text-sm leading-relaxed">{t.tutorialRule3}</p>
+                </div>
+                <div className="flex items-start gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-xl">⏳</span>
+                    <p className="text-white/80 text-xs md:text-sm leading-relaxed">{t.tutorialRule4}</p>
+                </div>
+            </div>
+            
+            <button onClick={acceptPartyTutorial} className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white rounded-xl text-[11px] md:text-xs font-black uppercase tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all active:scale-95 outline-none">
+                {t.tutorialBtn}
+            </button>
+        </div>
+    </div>
+)}
+
+{/* MODAL CREATION DE SALON (NOM PERSONNALISÉ) */}
+{showCreatePartyPrompt && createPartyMovie && (
+    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-[0_0_80px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-[#a855f7]/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-[#a855f7]/20">
+                <Building className="w-8 h-8 text-[#a855f7]" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white mb-2 uppercase tracking-widest">{t.createPartyRoomName}</h3>
+            <p className="text-white/60 text-xs mb-8">{t.createPartyRoomDesc}</p>
+            
+            <input
+                type="text"
+                value={customRoomName}
+                onChange={(e) => setCustomRoomName(e.target.value)}
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3.5 text-white font-bold text-center focus:border-[#a855f7] outline-none shadow-inner mb-8"
+                autoFocus
+            />
+            
+            <div className="flex gap-3">
+                <button onClick={() => { setShowCreatePartyPrompt(false); setCreatePartyMovie(null); }} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.createPartyCancel}</button>
+                <button onClick={() => handleCreateParty(createPartyMovie, customRoomName)} disabled={!customRoomName.trim()} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-[10px] font-bold uppercase shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all outline-none">{t.createPartySubmit}</button>
+            </div>
+        </div>
+    </div>
+)}
+
+{/* MODAL CODE PIN PRO */}
+{pinModal.show && (
+    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-10 max-w-sm w-full text-center shadow-[0_0_80px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-[#a855f7]/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-[#a855f7]/20">
+                <Lock className="w-8 h-8 text-[#a855f7]" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-white mb-2 uppercase tracking-widest">
+                {pinModal.mode === 'create' ? t.createPinTitle : t.enterPinTitle}
+            </h3>
+            <p className="text-white/60 text-[11px] md:text-xs mb-8 px-2 leading-relaxed">
+                {pinModal.mode === 'create' ? t.createPinDesc : t.enterPinDesc}
+            </p>
+            
+            <div className="relative flex justify-center gap-3 md:gap-4 mb-8">
+                {[0, 1, 2, 3].map(i => (
+                    <div key={i} className={`w-14 h-16 md:w-16 md:h-20 rounded-2xl flex items-center justify-center text-2xl md:text-4xl font-black transition-all duration-300 ${pinModal.tempPin.length === i ? 'border-2 border-[#a855f7] shadow-[0_0_20px_rgba(168,85,247,0.5)] bg-[#a855f7]/10 text-white' : pinModal.tempPin.length > i ? 'border border-[#a855f7]/50 bg-[#a855f7]/20 text-[#a855f7]' : 'border border-white/10 bg-black/50 text-white/30'}`}>
+                        {pinModal.tempPin.length > i ? '●' : ''}
+                    </div>
+                ))}
+                <input
+                    type="text"
+                    maxLength="4"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={pinModal.tempPin}
+                    onChange={(e) => handlePinInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-text z-10"
+                    autoFocus
+                />
+            </div>
+            
+            {pinModal.error && <p className="text-red-400 text-xs font-bold bg-red-500/10 py-3 rounded-xl border border-red-500/20 mb-6">{pinModal.error}</p>}
+            
+            <button onClick={() => setPinModal({ ...pinModal, show: false, tempPin: '', error: '' })} className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-xl text-[11px] font-bold uppercase tracking-widest transition-colors w-full border border-white/5 outline-none shadow-sm active:scale-95">
+                {t.cancel}
+            </button>
+        </div>
+    </div>
+)}
 
 {/* TOASTS */}
 <div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 pointer-events-none items-end">
@@ -939,6 +1654,7 @@ return (
 </div>
 
 {/* HEADER */}
+{currentCategory !== 'party' && (
 <header className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out flex items-center justify-between px-4 md:px-10 py-3 md:py-4 ${isScrolled ? 'bg-black/80 backdrop-blur-2xl border-b border-white/5 shadow-xl' : 'bg-gradient-to-b from-[#060608] via-[#060608]/90 to-transparent'}`}>
 <div className="flex items-center space-x-6 md:space-x-10">
 <div className="flex items-center gap-3 cursor-pointer outline-none" onClick={() => handleNavCategory('home')}>
@@ -952,24 +1668,38 @@ return (
 <button onClick={() => handleNavCategory('home')} className={`transition-colors hover:text-white outline-none ${currentCategory === 'home' ? 'text-[#a855f7]' : ''}`}>{t.home}</button>
 <button onClick={() => handleNavCategory('tv')} className={`transition-colors hover:text-white outline-none ${currentCategory === 'tv' ? 'text-[#a855f7]' : ''}`}>{t.series}</button>
 <button onClick={() => handleNavCategory('movie')} className={`transition-colors hover:text-white outline-none ${currentCategory === 'movie' ? 'text-[#a855f7]' : ''}`}>{t.movies}</button>
+<button onClick={() => handleNavCategory('party')} className={`transition-colors hover:text-white outline-none flex items-center gap-1.5 ${currentCategory === 'party' ? 'text-[#a855f7]' : ''}`}><Users className="w-3.5 h-3.5"/> {t.partyTab}</button>
 <button onClick={() => handleNavCategory('watchlist')} className={`transition-colors hover:text-white outline-none ${currentCategory === 'watchlist' ? 'text-[#a855f7]' : ''}`}>{t.myList}</button>
 </nav>
 </div>
 
 <div className="flex items-center space-x-3 md:space-x-6">
 <div className="flex items-center relative">
-<input
-type="text"
-value={searchQuery}
-onChange={(e) => setSearchQuery(e.target.value)}
-placeholder={t.searchPlaceholder}
-className="bg-[#151520] border border-white/10 text-white text-xs px-4 py-2 rounded-full outline-none w-36 md:w-64 focus:border-[#a855f7] transition-colors shadow-inner"
-/>
+    <input
+    type="text"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    onFocus={() => setShowRecentSearches(true)}
+    onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
+    placeholder={t.searchPlaceholder}
+    className="bg-[#151520] border border-white/10 text-white text-xs px-4 py-2 rounded-full outline-none w-48 md:w-80 focus:border-[#a855f7] transition-colors shadow-inner"
+    />
+    {showRecentSearches && recentSearches.length > 0 && !searchQuery && (
+        <div className="absolute top-full left-0 w-full mt-2 bg-[#151520] border border-white/10 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-1.5 text-[9px] text-white/40 uppercase font-black tracking-widest mb-1">{t.recentSearches}</div>
+            {recentSearches.map(s => (
+                <div key={s} className="flex items-center justify-between px-4 py-2 hover:bg-white/5 cursor-pointer group" onClick={() => { setSearchQuery(s); setShowRecentSearches(false); }}>
+                    <div className="flex items-center gap-2"><History className="w-3 h-3 text-white/30" /><span className="text-xs text-white/80">{s}</span></div>
+                    <button onClick={(e) => removeRecentSearch(s, e)} className="text-white/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity outline-none"><X className="w-3 h-3" /></button>
+                </div>
+            ))}
+        </div>
+    )}
 </div>
 
 <div className="flex items-center gap-3 p-1.5 pr-3 md:pr-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer shadow-md outline-none" onClick={() => setShowSettings(true)}>
 <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#151520] flex items-center justify-center overflow-hidden border border-[#a855f7]/40 shadow-inner shrink-0">
-<span className="text-[12px] md:text-[13px] font-black text-[#a855f7]">{defaultUserName.charAt(0).toUpperCase()}</span>
+{userPhoto ? <img src={userPhoto} className="w-full h-full object-cover" alt="Profile" /> : <span className="text-[12px] md:text-[13px] font-black text-[#a855f7]">{defaultUserName.charAt(0).toUpperCase()}</span>}
 </div>
 <div className="hidden md:block min-w-0">
 <p className="text-[12px] font-bold uppercase truncate tracking-wide text-white/90">{defaultUserName}</p>
@@ -977,6 +1707,7 @@ className="bg-[#151520] border border-white/10 text-white text-xs px-4 py-2 roun
 </div>
 </div>
 </header>
+)}
 
 {/* NAVBAR MOBILE */}
 <nav className="lg:hidden fixed bottom-0 w-full z-50 bg-[#060608]/95 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 shadow-[0_-10px_20px_rgba(0,0,0,0.5)] pb-[env(safe-area-inset-bottom)]">
@@ -985,6 +1716,10 @@ className="bg-[#151520] border border-white/10 text-white text-xs px-4 py-2 roun
 </button>
 <button onClick={() => handleNavCategory('tv')} className={`flex flex-col items-center gap-1 transition-colors outline-none ${currentCategory === 'tv' ? 'text-[#a855f7]' : 'text-white/50 hover:text-white'}`}>
 <Tv className="w-5 h-5" /> <span className="text-[9px] font-bold uppercase tracking-widest">{t.series}</span>
+</button>
+<button onClick={() => handleNavCategory('party')} className={`flex flex-col items-center gap-1 transition-colors outline-none ${currentCategory === 'party' ? 'text-[#a855f7]' : 'text-white/50 hover:text-white'}`}>
+<div className="relative"><Users className="w-5 h-5" /><div className="absolute -top-1 -right-1 w-2 h-2 bg-[#a855f7] rounded-full"></div></div>
+<span className="text-[9px] font-bold uppercase tracking-widest">{t.partyTab}</span>
 </button>
 <button onClick={() => handleNavCategory('movie')} className={`flex flex-col items-center gap-1 transition-colors outline-none ${currentCategory === 'movie' ? 'text-[#a855f7]' : 'text-white/50 hover:text-white'}`}>
 <Clapperboard className="w-5 h-5" /> <span className="text-[9px] font-bold uppercase tracking-widest">{t.movies}</span>
@@ -995,7 +1730,7 @@ className="bg-[#151520] border border-white/10 text-white text-xs px-4 py-2 roun
 </nav>
 
 {/* CONTENU PRINCIPAL */}
-{searchQuery ? (
+{currentCategory !== 'party' && searchQuery ? (
 <div className="pt-24 px-4 md:px-14 pb-24 relative z-30 min-h-screen">
 <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-widest border-l-4 border-[#a855f7] pl-3">{t.searchResults}</h2>
 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
@@ -1008,6 +1743,101 @@ return (
 );
 }) : <p className="text-white/50 py-10 col-span-full text-center">{t.noResults}</p>}
 </div>
+</div>
+) : currentCategory === 'party' ? (
+<div className="pt-10 px-4 md:px-14 pb-24 min-h-screen relative z-30 w-full max-w-[2000px] mx-auto">
+    <button onClick={() => handleNavCategory('home')} className="mb-6 flex items-center gap-2 text-white/50 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest outline-none">
+        <ChevronLeft className="w-4 h-4" /> {t.backToHome}
+    </button>
+
+    {/* Bannière Salon en cours */}
+    {partyId && partyData && !selectedMovie && (
+        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-[#a855f7]/50 rounded-[2rem] p-6 md:p-8 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+            <div className="flex items-center gap-4 text-center md:text-left w-full md:w-auto">
+                <div className="w-14 h-14 bg-[#a855f7] rounded-full flex items-center justify-center shadow-lg animate-pulse shrink-0 mx-auto md:mx-0">
+                    <Play className="w-6 h-6 fill-white text-white ml-1" />
+                </div>
+                <div>
+                    <h3 className="text-[#a855f7] font-black uppercase tracking-widest text-[10px] md:text-xs mb-1">{t.liveInProgress}</h3>
+                    <p className="text-white font-bold text-sm md:text-base truncate max-w-[250px] md:max-w-md">{partyData.roomName || partyData.title}</p>
+                </div>
+            </div>
+            <button onClick={() => rejoinActiveParty(partyData)} className="w-full md:w-auto bg-[#a855f7] hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95 outline-none">
+                {t.activePartyBanner}
+            </button>
+        </div>
+    )}
+    
+    {/* Interface intégrée pour rejoindre/créer */}
+    <div className="w-full bg-gradient-to-r from-[#a855f7]/10 to-transparent border border-white/10 rounded-[2rem] p-6 md:p-12 backdrop-blur-md shadow-2xl mb-12 animate-in fade-in zoom-in duration-500 flex flex-col md:flex-row gap-10 items-center">
+        <div className="flex-1 text-center md:text-left w-full">
+            <div className="w-16 h-16 rounded-full bg-[#a855f7]/20 flex items-center justify-center border border-[#a855f7]/30 shadow-[0_0_20px_rgba(168,85,247,0.3)] mx-auto md:mx-0 mb-4">
+                <WatchPartySVG className="w-8 h-8 text-[#a855f7]" />
+            </div>
+            <h2 className="text-2xl md:text-4xl font-black uppercase tracking-widest mb-2">{t.joinPartyTitle}</h2>
+            <p className="text-white/60 text-xs md:text-sm">{t.joinPartyDesc}</p>
+            
+            <div className="flex mt-6 bg-black/50 border border-white/10 rounded-full p-1 shadow-inner focus-within:border-[#a855f7] transition-colors w-full max-w-sm mx-auto md:mx-0">
+                <input 
+                    type="text" 
+                    id="partyCodeInput"
+                    placeholder={t.partyCodePlaceholder}
+                    className="flex-1 bg-transparent px-4 py-2.5 text-white font-mono text-[11px] md:text-xs outline-none uppercase tracking-[0.1em]"
+                />
+                <button 
+                    onClick={() => {
+                        const code = document.getElementById('partyCodeInput').value.trim().toUpperCase();
+                        if(code) triggerJoinParty(code);
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white px-6 py-2.5 rounded-full font-black uppercase tracking-widest transition-all active:scale-95 text-[10px] md:text-[11px] shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                >
+                    {t.joinBtn}
+                </button>
+            </div>
+        </div>
+        
+        <div className="hidden md:block w-px h-40 bg-white/10"></div>
+        
+        <div className="flex-1 w-full mt-6 md:mt-0">
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-widest mb-2 border-l-4 border-[#a855f7] pl-3">{t.createPartyTitle}</h2>
+            <p className="text-white/60 text-xs md:text-sm mb-4">{t.createPartyDesc}</p>
+            <div className="relative max-w-lg mx-auto md:mx-0">
+                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <input 
+                    type="text" 
+                    value={partySearchQuery}
+                    onChange={(e) => setPartySearchQuery(e.target.value)}
+                    placeholder={t.searchPartyMoviePlaceholder}
+                    className="w-full bg-[#151520] border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-white text-sm outline-none focus:border-[#a855f7] transition-colors shadow-inner"
+                />
+            </div>
+        </div>
+    </div>
+
+    {partySearchQuery ? (
+        <div>
+            <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-widest mb-6">{t.searchResults}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                {partySearchResults.length > 0 ? partySearchResults.map(movie => {
+                if(!movie.poster_path) return null;
+                return (
+                <div key={movie.id} className="relative cursor-pointer rounded-2xl overflow-hidden shadow-lg border border-white/5 bg-[#151520] hover:scale-105 transition-transform" onClick={() => openModal(movie, 'info')}>
+                <img className="object-cover w-full aspect-[2/3]" src={`${IMAGE_BASE_URL}${movie.poster_path}`} loading="lazy" alt="" />
+                </div>
+                );
+                }) : <p className="text-white/50 py-10 col-span-full text-center">{t.noResults}</p>}
+            </div>
+        </div>
+    ) : (
+        <div>
+            <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-widest border-l-4 border-[#a855f7] pl-3 mb-6 animate-in slide-in-from-left duration-700">{t.watchPartyMovies}</h2>
+            <main className="relative space-y-8 md:space-y-10">
+                {rowsConfig.map((row, i) => (
+                    <Row key={i} title={row.title} fetchUrl={row.url} isLarge={row.large} shuffle={row.shuffle} onMovieClick={(m) => openModal(m, 'info')} pageSeed={pageSeed} parentalFilter={parentalFilter} />
+                ))}
+            </main>
+        </div>
+    )}
 </div>
 ) : currentCategory === 'watchlist' ? (
 <div className="pt-24 px-0 pb-24 min-h-screen">
@@ -1029,13 +1859,9 @@ return (
 </div>
 ) : (
 <>
-{/* BANNER */}
-<Banner url={buildUrlNoFilter('/trending/all/week')} onPlay={() => openModal(heroMovie, 'play')} onInfo={() => openModal(heroMovie, 'info')} setHero={setHeroMovie} heroMovie={heroMovie} t={t} pageSeed={pageSeed} />
+<Banner url={buildUrlNoFilter('/trending/all/week')} onPlay={() => openModal(heroMovie, 'play')} onInfo={() => openModal(heroMovie, 'info')} setHero={setHeroMovie} heroMovie={heroMovie} t={t} pageSeed={pageSeed} parentalFilter={parentalFilter} />
 
-{/* ROWS */}
 <main className="pb-24 relative z-20 space-y-8 md:space-y-10 mt-6 md:-mt-10">
-
-{/* HISTORIQUE (Récemment Consultés) */}
 {recentlyViewed.length > 0 && (
 <div className="group relative ml-4 md:ml-12 animate-in fade-in duration-700">
 <h2 className="text-white/90 text-[13px] md:text-lg font-black mb-3 md:mb-5 uppercase tracking-[0.2em] border-l-4 border-[#a855f7] pl-3 md:pl-4 drop-shadow-sm flex items-center gap-3">
@@ -1051,9 +1877,8 @@ return (
 </div>
 )}
 
-{/* AUTRES LIGNES (Catalog complet mondial) */}
 {rowsConfig.map((row, i) => (
-<Row key={i} title={row.title} fetchUrl={row.url} isLarge={row.large} onMovieClick={(m) => openModal(m, 'info')} pageSeed={pageSeed} />
+<Row key={i} title={row.title} fetchUrl={row.url} isLarge={row.large} shuffle={row.shuffle} onMovieClick={(m) => openModal(m, 'info')} pageSeed={pageSeed} parentalFilter={parentalFilter} />
 ))}
 </main>
 </>
@@ -1070,12 +1895,12 @@ return (
 
 <div className="flex flex-col items-center mb-6">
 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#151520] border-2 border-[#a855f7]/50 shadow-[0_0_20px_rgba(168,85,247,0.3)] overflow-hidden mb-4 flex items-center justify-center">
-<span className="text-4xl font-black text-[#a855f7]">{defaultUserName.charAt(0).toUpperCase()}</span>
+{userPhoto ? <img src={userPhoto} className="w-full h-full object-cover" alt="Profile" /> : <span className="text-4xl font-black text-[#a855f7]">{defaultUserName.charAt(0).toUpperCase()}</span>}
 </div>
 <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-1 drop-shadow-md">{defaultUserName}</h2>
 <p className="text-xs text-white/50 font-mono mb-4">{userEmail || 'email@inconnu.com'}</p>
 
-<a href="https://levelupia.vercel.app" target="_blank" rel="noreferrer" className="px-5 py-2 bg-white/5 hover:bg-white/10 text-white/80 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 transition-colors flex items-center gap-2 no-underline shadow-md hover:border-[#a855f7]/50 outline-none">
+<a href="https://ecosystem-of-levelup.vercel.app/" target="_blank" rel="noreferrer" className="px-5 py-2 bg-white/5 hover:bg-white/10 text-white/80 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10 transition-colors flex items-center gap-2 no-underline shadow-md hover:border-[#a855f7]/50 outline-none">
 <Star className="w-3 h-3 text-[#a855f7] fill-[#a855f7]" /> {t.ecosystem}
 </a>
 </div>
@@ -1112,17 +1937,23 @@ return (
 <span className="px-3 py-1 bg-white/10 text-white/70 rounded-lg text-[10px] font-black tracking-widest border border-white/10 uppercase">{t.auto4k}</span>
 </div>
 
-<div className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 shadow-inner">
-<span className="text-[11px] font-bold text-white/80 uppercase tracking-widest flex items-center gap-3"><Shield className="w-4 h-4 text-[#a855f7]" /> {t.parentalFilter}</span>
-<label className="relative inline-flex items-center cursor-pointer outline-none">
-<input type="checkbox" className="sr-only peer" />
-<div className="w-9 h-5 bg-black/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/70 after:border-white/20 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#a855f7] peer-checked:after:bg-white shadow-inner"></div>
-</label>
+<div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/10 shadow-inner">
+    <div className="flex justify-between items-center mb-2">
+        <span className="text-[11px] font-bold text-white/80 uppercase tracking-widest flex items-center gap-3"><Shield className="w-4 h-4 text-[#a855f7]" /> {t.parentalFilter}</span>
+        <div onClick={handleParentalToggle} className="relative inline-flex items-center cursor-pointer outline-none">
+            <div className={`w-9 h-5 rounded-full shadow-inner transition-colors ${parentalFilter ? 'bg-[#a855f7]' : 'bg-black/50'}`}>
+                <div className={`absolute top-[2px] left-[2px] bg-white/70 border border-white/20 rounded-full h-4 w-4 transition-transform ${parentalFilter ? 'translate-x-full bg-white border-white' : ''}`}></div>
+            </div>
+        </div>
+    </div>
+    <p className="text-[9.5px] text-white/50 leading-relaxed text-justify mt-1">
+    {t.parentalFilterDesc}
+</p>
 </div>
 
 <div className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 shadow-inner">
 <span className="text-[11px] font-bold text-white/80 uppercase tracking-widest flex items-center gap-3"><HardDrive className="w-4 h-4 text-[#a855f7]" /> {t.systemCache}</span>
-<button onClick={() => showToast(t.cacheCleared, 'success')} className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/30 outline-none">{t.clearCache}</button>
+<button onClick={handleClearCache} className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all border border-red-500/30 outline-none">{t.clearCache}</button>
 </div>
 </div>
 </div>
@@ -1156,31 +1987,66 @@ return (
 </div>
 )}
 
-{/* MODAL MOVIE */}
+{/* MODAL MOVIE / THEATER */}
 {selectedMovie && (
 <MovieModal
 movie={selectedMovie}
 mode={modalMode}
-onClose={() => setSelectedMovie(null)}
-onSelectSimilar={(m) => {
-setSelectedMovie(m);
-setModalMode('info');
-addToHistory(m);
-}}
+onClose={() => { setSelectedMovie(null); }}
+onSelectSimilar={(m) => { setSelectedMovie(m); setModalMode('info'); addToHistory(m); }}
 t={t}
 lang={langCode}
 user={user}
+userPhoto={userPhoto}
+defaultUserName={defaultUserName}
 watchlist={watchlist}
 toggleWatchlist={toggleWatchlist}
 showToast={showToast}
+handleCreateParty={triggerCreateParty}
+partyId={partyId}
+partyData={partyData}
+handleSendPartyMessage={handleSendPartyMessage}
+sendSystemAction={sendSystemAction}
+handlePartySyncAction={handlePartySyncAction}
+handleLeaveParty={handleLeaveParty}
+db={db}
+APP_ID={APP_ID}
+isPartyCategory={currentCategory === 'party'}
 />
 )}
+
+{/* BOUTON SMART SCROLL - AFFICHÉ UNIQUEMENT À L'ACCUEIL ET QUAND AUCUN MODAL N'EST OUVERT */}
+{!selectedMovie && currentCategory !== 'party' && !showSettings && (
+<div className="fixed bottom-20 md:bottom-10 right-4 md:right-8 z-[8500] flex items-center justify-center w-14 h-14">
+<svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">
+<circle cx="28" cy="28" r="26" stroke="rgba(255,255,255,0.05)" strokeWidth="2" fill="none" />
+<circle
+cx="28" cy="28" r="26"
+stroke="#a855f7"
+strokeWidth="2.5"
+fill="none"
+strokeDasharray="163.36"
+strokeDashoffset={163.36 - (scrollProgress / 100) * 163.36}
+strokeLinecap="round"
+className="transition-all duration-200 ease-out"
+/>
+</svg>
+<button
+onClick={executeSmartScroll}
+className="w-11 h-11 bg-[#060608]/80 backdrop-blur-md hover:bg-[#a855f7] text-[#a855f7] hover:text-white rounded-full flex items-center justify-center transition-all active:scale-95 outline-none group"
+title="Défilement intelligent"
+>
+{isNearBottom ? <ArrowUp className="w-5 h-5 group-hover:animate-bounce" /> : <ArrowDown className="w-5 h-5 group-hover:animate-bounce" />}
+</button>
+</div>
+)}
+
 </div>
 );
 }
 
 // --- BANNER COMPONENT ---
-function Banner({ url, onPlay, onInfo, setHero, heroMovie, t, pageSeed }) {
+function Banner({ url, onPlay, onInfo, setHero, heroMovie, t, pageSeed, parentalFilter }) {
 useEffect(() => {
 const fetchMovie = async () => {
 try {
@@ -1191,12 +2057,16 @@ const data1 = await res1.json();
 const data2 = await res2.json();
 const combined = [...(data1.results||[]), ...(data2.results||[])];
 
-const valids = combined.filter(m => m.backdrop_path);
+let valids = combined.filter(m => m.backdrop_path);
+if (parentalFilter) {
+    valids = valids.filter(m => m.adult !== true);
+}
+
 setHero(valids[Math.floor(Math.random() * valids.length)]);
 } catch(e) {}
 };
 fetchMovie();
-}, [url, pageSeed]);
+}, [url, pageSeed, parentalFilter]);
 
 if (!heroMovie) return <div className="h-[80vh] w-full bg-[#060608] animate-pulse"></div>;
 
@@ -1224,11 +2094,11 @@ return (
 {heroMovie.overview}
 </p>
 
-<div className="flex flex-wrap gap-3 mt-5 md:mt-6">
-<button onClick={onPlay} className="flex-1 md:flex-none items-center justify-center flex gap-2 px-6 md:px-8 py-3 bg-white text-black rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 outline-none">
+<div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-5 md:mt-6">
+<button onClick={onPlay} className="flex-1 items-center justify-center flex gap-2 px-6 py-3.5 bg-white text-black rounded-xl text-[11px] md:text-[12px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] active:scale-95 outline-none">
 <Play className="w-4 h-4 fill-black" /> <span>{t.play}</span>
 </button>
-<button onClick={onInfo} className="flex-1 md:flex-none items-center justify-center flex gap-2 px-6 md:px-8 py-3 bg-white/10 border border-white/20 rounded-xl text-[11px] md:text-[13px] font-bold text-white uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95 backdrop-blur-md outline-none">
+<button onClick={onInfo} className="flex-1 items-center justify-center flex gap-2 px-6 py-3.5 bg-white/10 border border-white/20 rounded-xl text-[11px] md:text-[12px] font-bold text-white uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95 backdrop-blur-md outline-none">
 <Info className="w-4 h-4" /> <span>{t.details}</span>
 </button>
 </div>
@@ -1238,7 +2108,7 @@ return (
 }
 
 // --- ROW COMPONENT ---
-function Row({ title, fetchUrl, isLarge, onMovieClick, pageSeed }) {
+function Row({ title, fetchUrl, isLarge, shuffle, onMovieClick, pageSeed, parentalFilter }) {
 const [movies, setMovies] = useState([]);
 const rowRef = useRef(null);
 
@@ -1246,7 +2116,7 @@ useEffect(() => {
 const fetchM = async () => {
 try {
 const reqs = [];
-for (let i = 0; i < 4; i++) {
+for (let i = 0; i < 2; i++) {
 reqs.push(fetch(`${BASE_URL}${fetchUrl}&page=${pageSeed + i}`));
 }
 
@@ -1259,15 +2129,23 @@ allData.forEach(d => {
 if(d.results) combined = [...combined, ...d.results];
 });
 
-const uniqueMovies = Array.from(new Set(combined.map(a => a.id)))
+let uniqueMovies = Array.from(new Set(combined.map(a => a.id)))
 .map(id => combined.find(a => a.id === id))
 .filter(m => m && m.poster_path);
 
-setMovies(uniqueMovies);
+if (parentalFilter) {
+    uniqueMovies = uniqueMovies.filter(m => m.adult !== true);
+}
+
+if (shuffle) {
+    uniqueMovies = uniqueMovies.sort(() => Math.random() - 0.5);
+}
+
+setMovies(uniqueMovies.slice(0, 30));
 } catch(e) {}
 };
 fetchM();
-}, [fetchUrl, pageSeed]);
+}, [fetchUrl, pageSeed, shuffle, parentalFilter]);
 
 let isDown = false;
 let startX;
@@ -1336,8 +2214,8 @@ return (
 )
 }
 
-// --- MODAL MOVIE ---
-function MovieModal({ movie, mode, onClose, onSelectSimilar, t, lang, user, watchlist, toggleWatchlist, showToast }) {
+// --- MOVIE MODAL / THEATER MODE ---
+function MovieModal({ movie, mode, onClose, onSelectSimilar, t, lang, user, userPhoto, defaultUserName, watchlist, toggleWatchlist, showToast, handleCreateParty, partyId, partyData, handleSendPartyMessage, sendSystemAction, handlePartySyncAction, handleLeaveParty, db, APP_ID, isPartyCategory }) {
 const [details, setDetails] = useState(null);
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState(false);
@@ -1348,6 +2226,22 @@ const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 const [selectedServer, setSelectedServer] = useState('vidsrc_me');
 const [pendingServer, setPendingServer] = useState('vidsrc_me');
 const [iframeLoading, setIframeLoading] = useState(true);
+
+const [chatInput, setChatInput] = useState('');
+const [replyingTo, setReplyingTo] = useState(null);
+const chatEndRef = useRef(null);
+
+const [syncCountdown, setSyncCountdown] = useState(0);
+const [localPauseState, setLocalPauseState] = useState({ show: false, estimatedTime: 0 });
+const [showLeavePartyConfirm, setShowLeavePartyConfirm] = useState(false);
+const [showHostLeaveWarning, setShowHostLeaveWarning] = useState(false);
+
+const [showUserSearch, setShowUserSearch] = useState(false);
+const [friendSearchQuery, setFriendSearchQuery] = useState('');
+const [friendResults, setFriendResults] = useState([]);
+
+const [memberMenu, setMemberMenu] = useState(null);
+const [mutedUsers, setMutedUsers] = useState([]);
 
 const isTV = movie.first_air_date !== undefined;
 const typeStr = isTV ? 'tv' : 'movie';
@@ -1368,13 +2262,180 @@ setLoading(false);
 fetchDetails();
 }, [movie, typeStr, lang]);
 
+// Force movie playback if entering watch party
 useEffect(() => {
-if (mode === 'play') {
-handlePlayRequest('vidsrc_me');
+if (mode === 'play' || partyId) {
+    if (!disclaimerAccepted && !partyId) {
+        setShowDisclaimer(true);
+    } else {
+        setModalMode('play');
+        if(partyId) setDisclaimerAccepted(true);
+    }
 } else {
-setModalMode('info');
+    setModalMode('info');
 }
-}, [mode]);
+}, [mode, partyId]);
+
+useEffect(() => {
+if (!partyData) return;
+if (partyData.status === 'play_countdown') {
+    setLocalPauseState({ show: false, estimatedTime: 0 });
+    const elapsed = Math.floor((Date.now() - partyData.syncTime) / 1000);
+    let remaining = 5 - elapsed;
+    if (remaining > 0) {
+        setSyncCountdown(remaining);
+        const iv = setInterval(() => {
+            remaining -= 1;
+            setSyncCountdown(remaining);
+            if (remaining <= 0) clearInterval(iv);
+        }, 1000);
+        return () => clearInterval(iv);
+    } else {
+        setSyncCountdown(0);
+    }
+} else if (partyData.status === 'pause') {
+    setSyncCountdown(0);
+    setLocalPauseState({ show: true, estimatedTime: partyData.currentOffset || 0 });
+}
+}, [partyData]);
+
+useEffect(() => {
+if (chatEndRef.current) {
+    chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+}
+}, [partyData?.messages]);
+
+useEffect(() => {
+if (!showUserSearch || friendSearchQuery.trim().length < 1) {
+    setFriendResults([]);
+    return;
+}
+const searchUsers = async () => {
+    try {
+        const q = collectionGroup(db, 'security');
+        const snaps = await getDocs(q);
+        const results = [];
+        const queryLower = friendSearchQuery.trim().toLowerCase();
+        
+        snaps.forEach(doc => {
+            const data = doc.data();
+            const userNameStr = data.name || data.displayName || (data.email ? data.email.split('@')[0] : 'Inconnu');
+            const userUid = data.uid || data.key;
+            
+            if (userUid && userNameStr.toLowerCase().includes(queryLower)) {
+                results.push({ uid: userUid, name: userNameStr, email: data.owner || data.email, photo: null });
+            }
+        });
+        
+        const uniqueResults = Array.from(new Map(results.map(item => [item.uid, item])).values());
+        setFriendResults(uniqueResults);
+    } catch(e) {}
+};
+const delay = setTimeout(searchUsers, 500);
+return () => clearTimeout(delay);
+}, [friendSearchQuery, showUserSearch]);
+
+const handleInviteUser = async (friend) => {
+    // Vérification de la limite de 5 par semaine
+    const inviteDataStr = localStorage.getItem(`lm_invites_${user.uid}`);
+    let inviteData = inviteDataStr ? JSON.parse(inviteDataStr) : { count: 0, emails: [], weekStart: Date.now() };
+    
+    // Reset si plus de 7 jours
+    if (Date.now() - inviteData.weekStart > 7 * 24 * 60 * 60 * 1000) {
+        inviteData = { count: 0, emails: [], weekStart: Date.now() };
+    }
+    
+    if (inviteData.count >= 5) {
+        showToast(t.inviteLimitReached, "error");
+        return;
+    }
+    
+    if (inviteData.emails.includes(friend.email)) {
+        showToast(t.inviteAlreadySent, "error");
+        return;
+    }
+
+    try {
+        const keyDoc = await getDoc(doc(db, "artifacts", APP_ID, "system", "keys"));
+        let emailjs_service = "service_yzyqexy";
+        let emailjs_template = "template_c0eotmg";
+        let emailjs_public = "7UQM4yu7KUSpooMy9";
+
+        if (keyDoc.exists() && keyDoc.data().emailjs_public) {
+            emailjs_service = keyDoc.data().emailjs_service;
+            emailjs_template = keyDoc.data().emailjs_template;
+            emailjs_public = keyDoc.data().emailjs_public;
+        }
+
+        emailjs.init(emailjs_public);
+        await emailjs.send(emailjs_service, emailjs_template, {
+            email: friend.email,
+            to_email: friend.email,
+            to_name: friend.name,
+            from_name: defaultUserName,
+            message: `Rejoins ma Watch Party sur LevelMovie ! Le code d'accès de la room est : ${partyId}`,
+            code: partyId
+        });
+        
+        // Enregistrement du quota
+        inviteData.count += 1;
+        inviteData.emails.push(friend.email);
+        localStorage.setItem(`lm_invites_${user.uid}`, JSON.stringify(inviteData));
+
+        showToast(`${t.inviteSent.replace('!', '')} à ${friend.name}`, 'success');
+        setShowUserSearch(false);
+        setFriendSearchQuery('');
+    } catch (error) {
+        console.error("Erreur EmailJS", error);
+    }
+};
+
+const openMemberMenu = (member) => {
+    if ((user?.uid === partyData.hostUid || user?.uid === partyData.modUid) && member.uid !== user.uid) {
+        setMemberMenu(member);
+    }
+};
+
+const handlePromoteMod = async (memberUid) => {
+    if (user?.uid !== partyData.hostUid) return;
+    try {
+        await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+            modUid: memberUid
+        });
+        showToast(t.filterApplied, "success");
+        setMemberMenu(null);
+    } catch(e) {}
+}
+
+const handleBanUser = async (memberUid) => {
+    if (user?.uid !== partyData.hostUid && user?.uid !== partyData.modUid) return;
+    try {
+        const memberToRemove = partyData.members.find(m => m.uid === memberUid);
+        if (memberToRemove) {
+            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
+                members: arrayRemove(memberToRemove)
+            });
+        }
+        setMemberMenu(null);
+    } catch(e) {}
+}
+
+const handleMuteUser = (memberUid) => {
+    setMutedUsers(prev => [...prev, memberUid]);
+    setMemberMenu(null);
+    showToast(t.filterApplied, "info");
+}
+
+const confirmLeave = () => {
+    if (user.uid === partyData?.hostUid && partyData.members.length > 1 && !partyData.modUid) {
+        setShowHostLeaveWarning(true);
+        setShowLeavePartyConfirm(false);
+    } else {
+        handleLeaveParty();
+        setShowLeavePartyConfirm(false);
+        setShowHostLeaveWarning(false);
+    }
+};
 
 const handleShare = () => {
 const url = `https://www.themoviedb.org/${typeStr}/${movie.id}`;
@@ -1392,7 +2453,7 @@ if (!details?.videos?.results) return '';
 const frTrailer = details.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube' && v.iso_639_1 === 'fr');
 if (frTrailer) return frTrailer.key;
 const anyTrailer = details.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
-return anyTrailer ? anyTrailer.key : (details.videos.results[0]?.key || '');
+return anyTrailer ? anyTrailer.key : (details.videos.results.find(v => v.site === 'YouTube')?.key || '');
 };
 
 const getYoutubeFullKey = () => {
@@ -1419,7 +2480,7 @@ return unique.length > 0 ? { unique, link: providerData.link } : null;
 };
 
 const handlePlayRequest = (serverId) => {
-if (!disclaimerAccepted) {
+if (!disclaimerAccepted && !partyId) {
 setPendingServer(serverId);
 setShowDisclaimer(true);
 } else {
@@ -1452,6 +2513,22 @@ directors = details.created_by.map(c => c.name);
 }
 return directors.length > 0 ? directors.join(', ') : t.notSpecified;
 };
+
+let iframeSrc = '';
+if (selectedServer === 'youtube_full' && getYoutubeFullKey()) {
+iframeSrc = `https://www.youtube.com/embed/${getYoutubeFullKey()}?autoplay=1`;
+} else if (selectedServer === 'vidsrc') {
+iframeSrc = `https://vidsrc.to/embed/${typeStr}/${movie.id}`;
+} else if (selectedServer === 'vidsrc_me') {
+iframeSrc = `https://vidsrc.me/embed/${typeStr}?tmdb=${movie.id}`;
+} else if (selectedServer === 'embedsu') {
+iframeSrc = `https://embed.su/embed/${typeStr}/${movie.id}`;
+} else if (selectedServer === 'archive') {
+const title = movie.title || movie.name;
+const suffix = lang === 'fr-FR' ? ' film complet' : ' full movie';
+const q = encodeURIComponent(title + suffix);
+iframeSrc = `https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1`;
+}
 
 const renderIframe = () => {
 if (modalMode === 'info') {
@@ -1488,29 +2565,12 @@ return (
 <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-0">
 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a855f7]"></div>
 </div>
-<iframe key={`trailer-${tKey}`} className={`absolute inset-0 w-full h-full bg-black z-10 transition-opacity duration-500 ${iframeLoading ? 'opacity-0' : 'opacity-100'}`} src={`https://www.youtube.com/embed/${tKey}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1`} onLoad={() => setIframeLoading(false)} allow="autoplay; encrypted-media; picture-in-picture" frameBorder="0" allowFullScreen></iframe>
+{/* Utilisation de youtube-nocookie.com pour éviter erreur 153 */}
+<iframe key={`trailer-${tKey}`} className={`absolute inset-0 w-full h-full bg-black z-10 transition-opacity duration-500 ${iframeLoading ? 'opacity-0' : 'opacity-100'}`} src={`https://www.youtube-nocookie.com/embed/${tKey}?autoplay=1&controls=1&modestbranding=1&rel=0&playsinline=1&showinfo=0&fs=1`} onLoad={() => setIframeLoading(false)} allow="autoplay; encrypted-media; picture-in-picture" frameBorder="0" allowFullScreen></iframe>
 </>
 );
 }
 return <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white/50"><Clapperboard className="w-12 h-12 mb-2 opacity-50"/><span>{t.notFound}</span></div>;
-}
-
-let iframeSrc = '';
-if (selectedServer === 'youtube_full' && getYoutubeFullKey()) {
-iframeSrc = `https://www.youtube.com/embed/${getYoutubeFullKey()}?autoplay=1`;
-} else if (selectedServer === 'vidsrc') {
-iframeSrc = `https://vidsrc.to/embed/${typeStr}/${movie.id}`;
-} else if (selectedServer === 'vidsrc_me') {
-iframeSrc = `https://vidsrc.me/embed/${typeStr}?tmdb=${movie.id}`;
-} else if (selectedServer === 'embedsu') {
-iframeSrc = `https://embed.su/embed/${typeStr}/${movie.id}`;
-} else if (selectedServer === 'superembed') {
-iframeSrc = `https://multiembed.mov/?video_id=${movie.id}&tmdb=1`;
-} else if (selectedServer === 'archive') {
-const title = movie.title || movie.name;
-const suffix = lang === 'fr-FR' ? ' film complet' : ' full movie';
-const q = encodeURIComponent(title + suffix);
-iframeSrc = `https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1`;
 }
 
 return (
@@ -1523,294 +2583,524 @@ return (
 );
 };
 
-return (
-<div className="fixed inset-0 z-[8000] flex justify-center items-start md:items-center p-0 md:p-6 bg-[#060608]/95 backdrop-blur-3xl overflow-y-auto no-scrollbar">
-<div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#a855f7]/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
-<div className="fixed inset-0 z-0" onClick={onClose}></div>
+// ==========================================
+// ====== THEATER MODE (WATCH PARTY) ========
+// ==========================================
+if (partyId && partyData) {
+    if (!partyData.title) {
+        return (
+            <div className="fixed inset-0 z-[8000] bg-[#060608] flex flex-col items-center justify-center">
+                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a855f7] mb-4"></div>
+                 <span className="text-[#a855f7] font-black uppercase tracking-widest text-xs animate-pulse">Connexion au salon...</span>
+            </div>
+        );
+    }
 
-{/* MODAL AVERTISSEMENT */}
+    const isHostOrMod = user?.uid === partyData.hostUid || user?.uid === partyData.modUid;
+
+    return (
+        <div className="fixed inset-0 z-[8000] bg-[#060608] flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden">
+            
+            {/* Modal de Modération */}
+            {memberMenu && (
+                <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setMemberMenu(null)}>
+                    <div className="bg-[#151520] border border-[#a855f7]/30 rounded-2xl p-5 max-w-xs w-full text-center shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-white font-black text-sm uppercase tracking-widest mb-4">Gérer {memberMenu.name}</h3>
+                        <div className="flex flex-col gap-2">
+                            <button onClick={() => handleMuteUser(memberMenu.uid)} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.muteUser}</button>
+                            {user?.uid === partyData.hostUid && <button onClick={() => handlePromoteMod(memberMenu.uid)} className="w-full py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.promoteMod}</button>}
+                            <button onClick={() => handleBanUser(memberMenu.uid)} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.banUser}</button>
+                            <button onClick={() => setMemberMenu(null)} className="w-full py-3 mt-2 text-white/50 hover:text-white text-[10px] font-bold uppercase transition-colors outline-none">{t.menuCancel}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Quitter Salon */}
+            {showLeavePartyConfirm && (
+                <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-[#0a0a0f] border border-red-500/30 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] animate-in zoom-in duration-300">
+                        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-widest">{t.leavePartyTitle}</h3>
+                        <p className="text-white/60 text-xs mb-6">{t.leavePartyDesc}</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowLeavePartyConfirm(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.cancel}</button>
+                            <button onClick={confirmLeave} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-[10px] font-bold uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-colors outline-none">{t.leaveBtn}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showHostLeaveWarning && (
+                <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300">
+                        <ShieldAlert className="w-12 h-12 text-[#a855f7] mx-auto mb-4" />
+                        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-widest">Attention</h3>
+                        <p className="text-white/60 text-xs mb-6 leading-relaxed">{t.leaveNoModWarning}</p>
+                        <div className="flex flex-col gap-2">
+                            <button onClick={() => setShowHostLeaveWarning(false)} className="w-full py-3 bg-[#a855f7] text-white rounded-xl text-[10px] font-black uppercase transition-colors outline-none">{t.assignModBtn}</button>
+                            <button onClick={() => { setShowHostLeaveWarning(false); handleLeaveParty(); }} className="w-full py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.closeAnyway}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Colonne Gauche: Vidéo + Contrôles (Épinglée en haut sur mobile grâce à shrink-0) */}
+            <div className="w-full lg:flex-1 flex flex-col shrink-0 lg:shrink relative z-[60] bg-black shadow-2xl h-auto">
+                
+                {/* Lecteur Vidéo Exclusif (Format 16:9 parfait sur mobile, prend tout l'espace restant sur PC) */}
+                <div className="w-full aspect-video lg:aspect-auto lg:flex-1 bg-black relative border-b border-white/5 z-40 flex items-center justify-center">
+                    <iframe key={iframeSrc} className={`absolute inset-0 w-full h-full bg-transparent z-10 transition-opacity duration-500 ${iframeLoading ? 'opacity-0' : 'opacity-100'}`} src={iframeSrc} onLoad={() => setIframeLoading(false)} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+                    
+                    {iframeLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-0">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a855f7]"></div>
+                        </div>
+                    )}
+
+                    {/* OVERLAY PAUSE PLEIN ÉCRAN */}
+                    {localPauseState.show && (
+                        <div className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+                            <AlertTriangle className="w-16 h-16 md:w-24 md:h-24 text-red-500 mb-4 md:mb-6 animate-pulse" />
+                            <h2 className="text-xl md:text-3xl lg:text-5xl font-black text-white uppercase tracking-[0.2em] text-center px-4 mb-4 md:mb-8 drop-shadow-[0_0_30px_rgba(239,68,68,0.8)]">
+                                {t.pauseRequested}
+                            </h2>
+                            <div className="bg-white/5 border border-white/10 px-6 py-4 md:px-10 md:py-6 rounded-3xl text-center mb-6 md:mb-10 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+                                <span className="text-white/50 text-[10px] md:text-xs uppercase tracking-widest block mb-2">{t.hostPausedAt}</span>
+                                <span className="text-[#a855f7] font-mono font-black text-3xl md:text-5xl drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]">
+                                    {formatTimeEstimate(localPauseState.estimatedTime)}
+                                </span>
+                            </div>
+                            <button onClick={() => {
+                                setLocalPauseState(prev => ({...prev, show: false}));
+                                setSyncCountdown(5);
+                                let rem = 5;
+                                const iv = setInterval(() => {
+                                    rem -= 1;
+                                    setSyncCountdown(rem);
+                                    if (rem <= 0) clearInterval(iv);
+                                }, 1000);
+                            }} className="text-[10px] md:text-xs text-white/40 hover:text-white uppercase font-bold tracking-[0.2em] border border-white/10 px-6 py-3 rounded-full hover:bg-white/10 transition-colors outline-none shadow-sm active:scale-95">
+                                {t.ignorePause}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* OVERLAY COMPTE À REBOURS */}
+                    {syncCountdown > 0 && (
+                        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-none">
+                            <span className="text-[#a855f7] font-bold text-sm md:text-xl uppercase tracking-[0.5em] mb-4">{t.resumeCountdown}</span>
+                            <span className="text-white font-black text-8xl md:text-[150px] drop-shadow-[0_0_40px_rgba(168,85,247,0.8)] animate-pulse">{syncCountdown}</span>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Barre d'informations Hôte & Changement de Serveur (Hauteur Fixe) */}
+                <div className="w-full bg-[#0a0a0f] p-3 md:p-4 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.5)] z-30 flex flex-col md:flex-row items-center justify-between gap-3 relative border-t border-white/10">
+                    <div className="flex items-center justify-between w-full md:w-auto gap-3 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#a855f7]/20 rounded-xl flex items-center justify-center border border-[#a855f7]/30 shrink-0">
+                                <WatchPartySVG className="w-5 h-5 text-[#a855f7]" />
+                            </div>
+                            <div className="flex flex-col max-w-[150px] sm:max-w-[200px] md:max-w-[300px]">
+                                <h2 className="font-black text-[11px] md:text-sm text-white uppercase tracking-widest truncate">{partyData.roomName || partyData.title}</h2>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                    <span className="text-[8px] md:text-[9px] text-white/50 uppercase font-bold tracking-widest truncate">{partyData.members?.length || 1} spectateurs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-row gap-2 md:gap-3 w-full md:w-auto shrink-0 justify-between md:justify-end">
+                        
+                        {/* Contrôles d'Action (Envoi Msg Système) */}
+                        <div className="flex gap-1.5 shrink-0 items-center">
+                            <button onClick={() => sendSystemAction('PAUSE')} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-colors outline-none" title="J'ai mis en pause"><Pause className="w-3.5 h-3.5 fill-white"/></button>
+                            <button onClick={() => sendSystemAction('PLAY')} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-colors outline-none" title="J'ai relancé"><Play className="w-3.5 h-3.5 fill-white"/></button>
+                            <button onClick={() => sendSystemAction('ADS')} className="bg-white/5 hover:bg-white/10 text-yellow-500 p-2 rounded-lg transition-colors outline-none" title="Je vois une pub"><ShieldCheck className="w-3.5 h-3.5"/></button>
+                        </div>
+
+                        {/* Sélecteur de Serveur Limité (2 Serveurs) */}
+                        <div className="flex gap-1 shrink-0 overflow-x-auto no-scrollbar items-center bg-white/5 p-1 rounded-xl border border-white/10">
+                            <span className="text-[8px] md:text-[9px] font-bold text-white/40 uppercase tracking-widest ml-2 mr-1">Serveur:</span>
+                            <button onClick={() => setSelectedServer('vidsrc_me')} className={`px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-colors outline-none ${selectedServer === 'vidsrc_me' ? 'bg-[#a855f7] text-white shadow-md' : 'bg-transparent text-white/50 hover:bg-white/10 hover:text-white'}`}>GLOBAL</button>
+                            <button onClick={() => setSelectedServer('superembed')} className={`px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-colors outline-none ${selectedServer === 'superembed' ? 'bg-[#a855f7] text-white shadow-md' : 'bg-transparent text-white/50 hover:bg-white/10 hover:text-white'}`}>MULTI</button>
+                        </div>
+                        
+                        {/* Bouton Quitter (Power Rouge Pro) en bas */}
+                        <button onClick={() => setShowLeavePartyConfirm(true)} className="bg-red-500/10 hover:bg-red-500 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors outline-none shadow-sm shrink-0">
+                            <Power className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t.closeLive}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Colonne Droite: Chat (Défile à l'intérieur de lui-même) */}
+            <div className="flex-1 lg:w-[350px] xl:w-[400px] flex flex-col bg-[#0c0c10] border-t lg:border-t-0 lg:border-l border-white/5 relative z-40 min-h-0 shadow-[-20px_0_40px_rgba(0,0,0,0.8)]">
+                
+                {/* Header Chat / Code Caché Pro */}
+                <div className="p-3 bg-black/60 border-b border-white/5 backdrop-blur-md relative z-20 shrink-0">
+                    <div className="flex gap-2 w-full">
+                        <button onClick={() => { copyToClipboardFallback(partyId); showToast('Code copié !', 'success'); }} className="flex-[0.8] bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase tracking-widest py-2 rounded-xl border border-white/10 transition-colors flex items-center justify-center gap-1.5 outline-none shadow-sm">
+                            <Key className="w-3 h-3" /> Code
+                        </button>
+                        <button onClick={() => setShowUserSearch(!showUserSearch)} className="flex-[1.5] bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[9px] font-black uppercase tracking-widest py-2 rounded-xl transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-1.5 outline-none shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                            <UserPlus className="w-3 h-3" /> {t.inviteFriend}
+                        </button>
+                    </div>
+                    
+                    {showUserSearch && (
+                        <div className="absolute top-[4rem] left-4 right-4 bg-[#151520] border border-white/10 rounded-2xl shadow-2xl z-[100] p-4 animate-in slide-in-from-top-4 duration-200">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{t.searchFriend}</span>
+                                <button onClick={() => setShowUserSearch(false)} className="text-white/40 hover:text-white outline-none"><X className="w-4 h-4" /></button>
+                            </div>
+                            <input 
+                                type="text" 
+                                value={friendSearchQuery}
+                                onChange={(e) => setFriendSearchQuery(e.target.value)}
+                                placeholder="Tapez un nom..."
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#a855f7] mb-2"
+                                autoFocus
+                            />
+                            <div className="max-h-40 overflow-y-auto no-scrollbar flex flex-col gap-2">
+                                {friendResults.map(friend => (
+                                    <div key={friend.uid} className="flex items-center justify-between bg-white/5 p-2 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <img src={friend.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=151520&color=a855f7`} className="w-6 h-6 rounded-full object-cover" alt="" />
+                                            <span className="text-xs font-bold truncate max-w-[100px]">
+                                                {friend.name} {friend.uid === user?.uid && <span className="text-[#a855f7] text-[9px] ml-1">(Vous)</span>}
+                                            </span>
+                                        </div>
+                                        {friend.uid !== user?.uid && (
+                                            <button onClick={() => handleInviteUser(friend)} className="bg-[#a855f7]/20 text-[#a855f7] px-2 py-1 rounded-md text-[9px] font-black uppercase outline-none hover:bg-[#a855f7] hover:text-white transition-colors">
+                                                Envoyer
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {friendSearchQuery.length >= 1 && friendResults.length === 0 && <span className="text-[10px] text-white/40 text-center block my-2">Aucun utilisateur trouvé.</span>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Liste Membres */}
+                <div className="px-3 py-2 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar shrink-0 items-center bg-black/20">
+                    {partyData.members?.map(m => (
+                        <div key={m.uid} onClick={(e) => { e.stopPropagation(); openMemberMenu(m); }} className={`relative group flex flex-col items-center shrink-0 ${(user?.uid === partyData.hostUid || user?.uid === partyData.modUid) && m.uid !== user?.uid ? 'cursor-pointer hover:opacity-80' : ''}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] border-[2px] shadow-sm overflow-hidden ${m.uid === partyData.hostUid ? 'border-[#a855f7]' : (m.uid === partyData.modUid ? 'border-blue-500' : 'border-white/20')}`}>
+                                {m.photo ? <img src={m.photo} className="w-full h-full object-cover" alt="" /> : m.name?.charAt(0).toUpperCase()}
+                            </div>
+                            {m.uid === partyData.hostUid && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#a855f7] rounded-full border-2 border-[#111116] flex items-center justify-center"><Star className="w-2 h-2 fill-white text-white"/></div>}
+                            {m.uid === partyData.modUid && m.uid !== partyData.hostUid && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-[#111116] flex items-center justify-center"><ShieldCheck className="w-2 h-2 fill-white text-white"/></div>}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Messages du Chat (Style TikTok / Instagram Live sans bulles, propre) */}
+                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1 no-scrollbar bg-gradient-to-t from-black/80 via-black/40 to-transparent min-h-0">
+                    
+                    {partyData.messages?.filter(msg => !mutedUsers.includes(msg.uid)).map((msg, i) => {
+                        if (msg.isSystem) {
+                            let sysText = msg.text || "";
+                            if (msg.action === 'JOIN') sysText = `${t.sysJoined}`;
+                            else if (msg.action === 'LEAVE') sysText = `${t.sysLeft}`;
+                            else if (msg.action === 'PAUSE') sysText = `${t.sysPaused}`;
+                            else if (msg.action === 'PLAY') sysText = `${t.sysPlayed}`;
+                            else if (msg.action === 'ADS') sysText = `${t.sysAds}`;
+
+                            return (
+                                <div key={i} className="flex items-start w-full group mb-2 p-1 -mx-1 rounded-lg">
+                                    <div className="w-6 h-6 rounded-full bg-[#a855f7]/20 border border-[#a855f7]/30 flex items-center justify-center mr-2.5 shrink-0 mt-0.5 shadow-sm">
+                                        <Bell className="w-3 h-3 text-[#a855f7]" />
+                                    </div>
+                                    <div className="flex-1 text-[12px] md:text-[13px] leading-snug drop-shadow-md break-words pt-0.5 text-white/60 italic">
+                                        <span className="font-bold mr-1 text-[#a855f7]">Alerte</span>
+                                        <span className="text-white/60">{msg.name} {sysText}</span>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                        <div key={i} className="flex items-start w-full group mb-2 cursor-pointer hover:bg-white/5 p-1.5 -mx-1.5 rounded-lg transition-colors chat-msg" onClick={() => { if(msg.uid !== user.uid) { openMemberMenu(msg); setReplyingTo({ name: msg.name, text: msg.text }); } }}>
+                            {/* Avatar (Ouvre le menu modération) */}
+                            <img src={msg.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.name)}&background=151520&color=a855f7`} onClick={(e) => { e.stopPropagation(); if(msg.uid !== user.uid) openMemberMenu(msg); }} className="w-6 h-6 rounded-full object-cover mr-2.5 shrink-0 border border-white/10 shadow-sm mt-0.5 hover:opacity-80" alt=""/>
+                            
+                            <div className="flex-1 text-[12px] md:text-[13px] leading-snug drop-shadow-md break-words pt-0.5">
+                                {/* Reply Indicator */}
+                                {msg.replyTo && (
+                                    <div className="text-[9px] text-white/40 mb-0.5 flex items-center gap-1.5 border-l-2 border-[#a855f7] pl-1.5">
+                                        <Reply className="w-2.5 h-2.5" /> <span className="truncate max-w-[200px]"><strong className="text-white/60">{msg.replyTo.name}:</strong> {msg.replyTo.text}</span>
+                                    </div>
+                                )}
+                                {/* Name + Message Stacked Inline */}
+                                <span className={`font-black mr-2 ${msg.uid === partyData.hostUid ? 'text-[#a855f7]' : (msg.uid === partyData.modUid ? 'text-blue-400' : 'text-white/70')}`}>
+                                    {msg.name}
+                                    {msg.uid === partyData.hostUid && <span className="bg-[#a855f7]/20 text-[#a855f7] text-[6px] px-1 py-0.5 rounded uppercase font-black border border-[#a855f7]/30 ml-1.5 align-middle">{t.hostBadge}</span>}
+                                    {msg.uid === partyData.modUid && msg.uid !== partyData.hostUid && <span className="bg-blue-500/20 text-blue-400 text-[6px] px-1 py-0.5 rounded uppercase font-black border border-blue-500/30 ml-1.5 align-middle">{t.modBadge}</span>}
+                                </span>
+                                <span className="text-white drop-shadow-sm">{msg.text}</span>
+                            </div>
+                        </div>
+                    )})}
+                    <div ref={chatEndRef} className="h-2 shrink-0" />
+                </div>
+
+                {/* Input Chat Fixé en bas */}
+                <div className="p-3 border-t border-white/5 bg-[#0c0c10] shrink-0 z-20">
+                    {replyingTo && (
+                        <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-t-xl border-x border-t border-white/10 -mt-8 mb-2">
+                            <div className="text-[9px] md:text-[11px] text-white/60 truncate flex-1 flex items-center gap-1.5">
+                                <Reply className="w-3.5 h-3.5 text-[#a855f7]" /> <span className="font-bold">{t.replyTo} {replyingTo.name}:</span> <span className="italic">{replyingTo.text}</span>
+                            </div>
+                            <button onClick={() => setReplyingTo(null)} className="text-white/40 hover:text-white p-1 outline-none"><X className="w-3.5 h-3.5" /></button>
+                        </div>
+                    )}
+                    <div className={`relative flex items-center bg-[#1a1a24] border border-white/10 ${replyingTo ? 'rounded-b-xl rounded-tr-xl' : 'rounded-full'} p-1 transition-all focus-within:border-[#a855f7] shadow-inner`}>
+                        <input 
+                            type="text" 
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { handleSendPartyMessage(chatInput, replyingTo); setChatInput(''); setReplyingTo(null); } }}
+                            placeholder={t.chatPlaceholder}
+                            className="w-full bg-transparent pl-4 pr-2 py-2.5 text-[12px] md:text-[13px] text-white outline-none"
+                        />
+                        <button 
+                            onClick={() => { handleSendPartyMessage(chatInput, replyingTo); setChatInput(''); setReplyingTo(null); }} 
+                            disabled={!chatInput.trim()}
+                            className="w-8 h-8 shrink-0 rounded-full bg-[#a855f7] flex items-center justify-center text-white hover:bg-purple-500 disabled:opacity-50 disabled:bg-white/10 transition-colors outline-none"
+                        >
+                            <Send className="w-3.5 h-3.5 ml-0.5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- MODAL STANDARD (FILM CLASSIQUE EN PLEIN ÉCRAN TOTAL) ---
+return (
+<div className="fixed inset-0 z-[8000] bg-[#0a0a0f] flex flex-col overflow-x-hidden overflow-y-auto no-scrollbar animate-in fade-in duration-300">
+
 {showDisclaimer && (
 <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
 <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300">
 <h3 className="text-xl md:text-2xl font-black text-white mb-4 uppercase tracking-widest flex items-center gap-3 border-b border-white/10 pb-4">
 <AlertTriangle className="text-red-500 w-8 h-8" /> {t.warningTitle}
 </h3>
-
 <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 border border-[#a855f7]/50 p-5 rounded-2xl mb-6 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
 <h4 className="text-white font-black text-sm md:text-base mb-2 tracking-widest">{t.recommendationTitle}</h4>
 <p className="text-white/80 text-xs md:text-sm leading-relaxed" dangerouslySetInnerHTML={{__html: t.recommendationText}}></p>
 </div>
-
-<p className="text-white/60 text-[10px] md:text-xs leading-relaxed mb-6 text-justify">
-{t.warningDisclaimer}
-</p>
-
-<div className="flex flex-wrap gap-4 mb-8 justify-center">
-<div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-inner">
-<svg viewBox="0 0 512 512" className="w-5 h-5" fill="#FF1B2D"><path d="M255.8 48C141 48 48 141.2 48 256s93 208 207.8 208c115 0 208.2-93.2 208.2-208S370.8 48 255.8 48zm0 338.5c-56 0-101.2-58.5-101.2-130.5 0-72 45.2-130.5 101.2-130.5 56 0 101.2 58.5 101.2 130.5 0 72-45.2 130.5-101.2 130.5z"/></svg>
-<span className="text-[11px] font-bold text-white tracking-widest uppercase">Opera</span>
-</div>
-<div className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-xl shadow-inner">
-<svg viewBox="0 0 24 24" className="w-5 h-5 text-[#FF4724]" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-<span className="text-[11px] font-bold text-white tracking-widest uppercase">Brave</span>
-</div>
-</div>
-
+<p className="text-white/60 text-[10px] md:text-xs leading-relaxed mb-6 text-justify">{t.warningDisclaimer}</p>
 <label className="flex items-start gap-3 cursor-pointer mb-8 bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors shadow-sm outline-none">
 <input type="checkbox" checked={disclaimerAccepted} onChange={(e) => setDisclaimerAccepted(e.target.checked)} className="mt-0.5 w-5 h-5 accent-[#a855f7] cursor-pointer" />
 <span className="text-white/90 text-xs md:text-sm font-bold leading-tight">{t.disclaimerCheckbox}</span>
 </label>
-
 <div className="flex justify-end gap-3 border-t border-white/10 pt-6">
 <button onClick={() => setShowDisclaimer(false)} className="px-6 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/5 transition-colors outline-none">{t.cancel}</button>
-<button disabled={!disclaimerAccepted} onClick={() => {
-setShowDisclaimer(false);
-setSelectedServer(pendingServer);
-setModalMode('play');
-}} className="px-8 py-3 bg-[#a855f7] text-white rounded-xl font-black text-[11px] uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] outline-none">{t.acceptPlay}</button>
+<button disabled={!disclaimerAccepted} onClick={() => { setShowDisclaimer(false); setSelectedServer(pendingServer); setModalMode('play'); }} className="px-8 py-3 bg-[#a855f7] text-white rounded-xl font-black text-[11px] uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-500 transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] outline-none">{t.acceptPlay}</button>
 </div>
 </div>
 </div>
 )}
 
-<div className="holo-card relative w-full min-h-[100vh] md:min-h-0 md:h-auto max-h-full md:max-h-[90vh] max-w-6xl md:rounded-[2rem] overflow-x-hidden overflow-y-auto shadow-[0_0_80px_rgba(0,0,0,0.9)] border-white/10 animate-in slide-in-from-bottom md:zoom-in duration-300 flex flex-col bg-[#0a0a0f] z-10 md:my-auto my-0">
+<div className="w-full flex-1 flex flex-col bg-[#0a0a0f] z-10 relative min-h-screen">
+    {/* HEADER PLEIN ÉCRAN */}
+    <div className="w-full bg-black/60 backdrop-blur-md border-b border-white/5 flex justify-between items-center px-4 md:px-10 py-3 md:py-4 shrink-0 sticky top-0 z-[60] shadow-md">
+    <div className="flex items-center gap-2">
+    <LevelMovieLogo className="w-5 h-5 md:w-6 md:h-6 text-[#a855f7]" />
+    <span className="text-white font-black tracking-[0.2em] text-sm md:text-base uppercase drop-shadow-md">Level<span className="text-[#a855f7]">Movie</span></span>
+    </div>
+    <button onClick={onClose} className="flex items-center gap-2 px-5 py-2.5 bg-white/5 text-white/50 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/10 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 outline-none">
+    <X className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden sm:inline">{t.closePlayer}</span>
+    </button>
+    </div>
 
-<div className="w-full bg-[#0a0a0f] border-b border-white/5 flex justify-between items-center px-4 md:px-8 py-3 shrink-0 sticky top-0 z-[60] shadow-md">
-<div className="flex items-center gap-2">
-<LevelMovieLogo className="w-4 h-4 text-[#a855f7]" />
-<span className="text-white font-black tracking-[0.2em] text-[12px] uppercase drop-shadow-md">Level<span className="text-[#a855f7]">Movie</span></span>
-</div>
-<button onClick={onClose} className="flex items-center gap-2 px-5 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95 outline-none">
-<X className="w-3 h-3" /> <span>{t.closePlayer}</span>
-</button>
+    {/* LECTEUR VIDÉO (Prend toute la largeur) */}
+    <div className="relative pt-[56.25%] md:h-[70vh] md:pt-0 w-full bg-black shrink-0 overflow-hidden border-b border-white/10 shadow-lg flex items-center justify-center">
+    {loading ? (
+    <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a855f7]"></div>
+    </div>
+    ) : error ? (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#060608] text-center p-6 border-b border-[#a855f7]/30">
+    <LevelMovieLogo className="w-12 h-12 text-[#a855f7] mb-6 opacity-80" />
+    <div className="bg-red-500/10 p-4 rounded-full mb-4">
+    <AlertTriangle className="w-8 h-8 text-red-400" />
+    </div>
+    <h3 className="text-lg font-black mb-2 text-white uppercase tracking-widest drop-shadow-md">{t.notFound}</h3>
+    <p className="text-white/60 text-xs max-w-sm">{t.contentUnavailableDesc}</p>
+    </div>
+    ) : renderIframe()}
+    </div>
+
+    {/* CORPS DE LA PAGE */}
+    <div className="p-5 md:p-10 lg:p-14 shrink-0 bg-gradient-to-b from-[#15092a]/30 to-[#0a0a0f] flex-1 pb-32 w-full mx-auto">
+
+    {modalMode === 'play' && (
+    <div className="mb-8 flex flex-col gap-5 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/5 shadow-inner max-w-5xl mx-auto">
+    <div className="flex justify-between items-center mb-2">
+    <span className="text-[11px] font-black text-white/70 uppercase tracking-widest"><Server className="w-4 h-4 inline mr-2 text-[#a855f7]" /> {t.externalSources}</span>
+    <button onClick={() => setModalMode('info')} className="text-[10px] font-bold text-white/50 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors outline-none"><Info className="w-3 h-3 inline mr-1" /> {t.movieInfo}</button>
+    </div>
+    <p className="text-[10px] text-[#a855f7] mb-2 font-bold uppercase tracking-widest">
+    <Info className="w-3 h-3 inline mr-1" /> {t.audioTip}
+    </p>
+    <div className="flex flex-wrap gap-3">
+    <button onClick={() => handlePlayRequest('vidsrc_me')} className={`px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'vidsrc_me' ? 'bg-[#a855f7] text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}`}>
+    {t.server1}
+    </button>
+    <button onClick={() => handlePlayRequest('superembed')} className={`px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'superembed' ? 'bg-[#a855f7] text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}`}>
+    {t.server2}
+    </button>
+
+    {/* Domaine Public */}
+    {(movie.release_date && parseInt(movie.release_date.substring(0, 4)) <= 1970) && (
+    <button onClick={() => handlePlayRequest('archive')} className={`px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'archive' ? 'bg-[#a855f7] text-white border border-[#a855f7]/30 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}`}>
+    <Library className="w-3 h-3 inline mr-1 text-gray-400" /> {t.publicDomainDirect}
+    </button>
+    )}
+
+    {/* Serveur Direct (HD) */}
+    {getYoutubeFullKey() && (
+    <button onClick={() => handlePlayRequest('youtube_full')} className={`ml-auto px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'youtube_full' ? 'bg-[#a855f7] text-white border border-[#a855f7]/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-white/5 text-white/70 border border-white/20 hover:bg-white/10'}`}>
+    <Clapperboard className="w-3 h-3 inline mr-1 text-[#a855f7]" /> {t.youtubeFull}
+    </button>
+    )}
+    </div>
+    </div>
+    )}
+
+    {(modalMode === 'info' || modalMode === 'trailer') && details && (
+    <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 max-w-7xl mx-auto">
+    <div className="flex-1">
+    <h2 className="text-4xl md:text-6xl font-black mb-4 text-white uppercase tracking-tighter drop-shadow-lg leading-tight">
+    {movie.title || movie.name || movie.original_name}
+    </h2>
+    <div className="text-[#a855f7] italic text-base md:text-lg font-medium mb-6 drop-shadow-sm flex items-center gap-2">
+    <span>{details.tagline ? `"${details.tagline}"` : ''}</span>
+    </div>
+
+    <div className="flex items-center space-x-4 mb-8 flex-wrap gap-y-4">
+    <span className="text-green-400 font-black text-xs md:text-sm uppercase tracking-widest border border-green-400/30 px-3 py-1.5 rounded bg-green-400/10 shadow-sm">{t.match}</span>
+    {details.status && <span className="text-blue-400 font-bold text-xs md:text-sm uppercase tracking-widest border border-blue-400/30 px-3 py-1.5 rounded bg-blue-400/10">{details.status}</span>}
+    <span className="text-white/80 font-bold text-sm md:text-base border-l border-white/20 pl-4">{(movie.release_date || movie.first_air_date || '').substring(0, 4)}</span>
+    <span className="text-white/80 font-bold text-sm md:text-base border-l border-white/20 pl-4">{getFormatRuntime()}</span>
+    {details.original_language && <span className="text-white/60 font-bold text-xs uppercase tracking-widest border-l border-white/20 pl-4">{t.originalLang}: {details.original_language.toUpperCase()}</span>}
+    <span className="px-2.5 py-1.5 border border-white/20 rounded text-[10px] font-bold text-white uppercase tracking-widest bg-white/5 shadow-sm border-l border-white/20 pl-4 ml-2">HD 1080p</span>
+    </div>
+
+    <div className="mb-6">
+    <span className="text-white/40 font-bold text-[10px] uppercase tracking-widest block mb-1">{t.originalTitle}</span>
+    <span className="text-white/70 font-medium text-sm italic">{details.original_title || details.original_name || t.notSpecified}</span>
+    </div>
+
+    {/* BOUTONS D'ACTION DU FILM */}
+    <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
+        
+        {/* Play */}
+        <button onClick={() => handlePlayRequest(selectedServer)} className="flex-1 items-center justify-center flex gap-3 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-[0_0_30px_rgba(168,85,247,0.4)] active:scale-95 outline-none">
+            <Play className="w-5 h-5 fill-white" /> <span>{t.playMovie}</span>
+        </button>
+
+        {/* Bande-Annonce */}
+        <button
+            onClick={() => {
+                if (modalMode !== 'trailer') {
+                    setIframeLoading(true);
+                    setModalMode('trailer');
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                }
+            }}
+            disabled={modalMode === 'trailer'}
+            className={`flex-1 items-center justify-center flex gap-3 px-6 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all active:scale-95 outline-none ${
+                modalMode === 'trailer'
+                ? 'bg-[#a855f7]/10 border border-[#a855f7]/50 text-[#a855f7] cursor-default shadow-inner'
+                : 'bg-white/5 border border-white/20 text-white hover:bg-white/10 backdrop-blur-md shadow-md'
+            }`}>
+            {modalMode === 'trailer' ? (
+                <>
+                    <div className="flex gap-1.5 items-center justify-center">
+                        <div className="w-2 h-2 bg-[#a855f7] rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-[#a855f7] rounded-full animate-bounce" style={{animationDelay: "0.1s"}}></div>
+                        <div className="w-2 h-2 bg-[#a855f7] rounded-full animate-bounce" style={{animationDelay: "0.2s"}}></div>
+                    </div>
+                    <span>{t.trailerPlaying}</span>
+                </>
+            ) : (
+                <><Clapperboard className="w-5 h-5" /> <span>{t.trailer}</span></>
+            )}
+        </button>
+
+        {/* Watch Party */}
+        <button onClick={() => triggerCreateParty(movie)} className={`flex-1 items-center justify-center flex gap-3 px-6 py-4 bg-white/5 border border-[#a855f7]/50 text-white rounded-xl text-xs md:text-sm font-bold uppercase tracking-widest hover:bg-[#a855f7]/20 hover:border-[#a855f7] transition-all active:scale-95 outline-none shadow-md`}>
+            <WatchPartySVG className="w-5 h-5 text-[#a855f7]" /> <span>{t.createPartyBtn}</span>
+        </button>
+    </div>
+
+    <div className="markdown-pro pr-2 text-justify text-base md:text-lg leading-relaxed text-white/80">
+    {movie.overview ? movie.overview.split('\n').filter(p=>p.trim()).map((p,i) => <p key={i} className="mb-4">{p}</p>) : <p>{t.noDesc}</p>}
+    </div>
+
+    <div className="mt-10 flex gap-4 pt-8 border-t border-white/10">
+    <button onClick={() => toggleWatchlist(movie)} className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl border transition-all active:scale-95 outline-none ${isAddedToWatchlist ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-white/5 border-white/20 text-white/80 hover:bg-white/10'}`}>
+    {isAddedToWatchlist ? <><CheckCircle className="w-6 h-6" /><span className="text-xs md:text-sm font-bold uppercase tracking-widest">{t.alreadyInList}</span></> : <><Plus className="w-6 h-6 text-[#a855f7]" /><span className="text-xs md:text-sm font-bold uppercase tracking-widest">{t.addToList}</span></>}
+    </button>
+    <button onClick={handleShare} className="flex items-center justify-center gap-3 px-8 py-4 rounded-xl border border-white/20 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95 outline-none">
+    <Share2 className="w-6 h-6 text-blue-400" />
+    </button>
+    </div>
+    </div>
+
+    <div className="w-full lg:w-[40%] space-y-8 bg-black/40 p-6 md:p-8 rounded-3xl border border-white/5 shadow-inner h-fit">
+    <div>
+    <span className="text-white/40 font-bold block mb-4 uppercase tracking-widest text-xs flex items-center gap-2"><Users className="w-5 h-5 text-[#a855f7]" /> <span>{t.cast}</span></span>
+    <div className="flex gap-5 overflow-x-auto no-scrollbar pb-3 row-container cursor-grab active:cursor-grabbing">
+    {details.credits?.cast?.slice(0, 15).map(c => (
+    <div key={c.id} className="flex flex-col items-center min-w-[80px] gap-2 shrink-0 select-none">
+    <img src={c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=151520&color=a855f7`} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border border-white/10 shadow-md bg-black/50" draggable="false" alt=""/>
+    <span className="text-[10px] md:text-xs text-white/90 text-center font-bold w-[90px] truncate px-1">{c.name}</span>
+    {c.character && <span className="text-[9px] md:text-[10px] text-[#a855f7] truncate w-[90px] text-center">{c.character}</span>}
+    </div>
+    )) || <span className="text-white/50 text-sm">{t.noCasting}</span>}
+    </div>
+    </div>
+    <div className="w-full h-px bg-white/10"></div>
+    <div>
+    <span className="text-white/40 font-bold block mb-2 uppercase tracking-widest text-xs flex items-center gap-2"><Film className="w-5 h-5 text-[#a855f7]" /> {t.director}</span>
+    <span className="text-white/90 font-medium text-sm block mt-2">{getDirector()}</span>
+    </div>
+    </div>
+    </div>
+    )}
+
+    {details && details.similar?.results?.length > 0 && (
+    <div className="mt-16 pt-10 border-t border-white/10 max-w-7xl mx-auto">
+    <h3 className="text-white/90 text-lg md:text-xl font-black mb-6 uppercase tracking-[0.2em] border-l-4 border-[#a855f7] pl-4">{t.similar}</h3>
+    <div className="flex overflow-x-auto gap-5 no-scrollbar pb-6 row-container cursor-grab active:cursor-grabbing">
+    {details.similar.results.slice(0, 10).map(sm => {
+    if(!sm.poster_path) return null;
+    return (
+    <div key={sm.id} className="relative flex-none cursor-pointer rounded-2xl overflow-hidden shadow-xl border border-white/5 bg-[#151520] hover:scale-105 transition-transform w-[140px] md:w-[180px] h-[210px] md:h-[270px]" onClick={() => onSelectSimilar(sm)}>
+    <img className="object-cover w-full h-full" src={`${IMAGE_BASE_URL}${sm.poster_path}`} loading="lazy" draggable="false" alt=""/>
+    </div>
+    )
+    })}
+    </div>
+    </div>
+    )}
+    </div>
 </div>
 
-<div className="relative pt-[56.25%] md:pt-[45%] w-full bg-black shrink-0 overflow-hidden border-b border-[#a855f7]/30 shadow-lg">
-{loading ? (
-<div className="absolute inset-0 flex items-center justify-center bg-black/80">
-<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a855f7]"></div>
-</div>
-) : error ? (
-<div className="absolute inset-0 flex flex-col items-center justify-center bg-[#060608] text-center p-6 border-b border-[#a855f7]/30">
-<LevelMovieLogo className="w-12 h-12 text-[#a855f7] mb-6 opacity-80" />
-<div className="bg-red-500/10 p-4 rounded-full mb-4">
-<AlertTriangle className="w-8 h-8 text-red-400" />
-</div>
-<h3 className="text-lg font-black mb-2 text-white uppercase tracking-widest drop-shadow-md">{t.notFound}</h3>
-<p className="text-white/60 text-xs max-w-sm">{t.contentUnavailableDesc}</p>
-</div>
-) : renderIframe()}
-</div>
-
-<div className="p-5 md:p-10 shrink-0 bg-gradient-to-b from-[#15092a]/40 to-transparent h-full pb-24">
-
-{modalMode === 'play' && (
-<div className="mb-8 flex flex-col gap-5 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/5 shadow-inner">
-<div className="flex justify-between items-center mb-2">
-<span className="text-[11px] font-black text-white/70 uppercase tracking-widest"><Server className="w-4 h-4 inline mr-2 text-[#a855f7]" /> {t.externalSources}</span>
-<button onClick={() => setModalMode('info')} className="text-[10px] font-bold text-white/50 hover:text-white uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors outline-none"><Info className="w-3 h-3 inline mr-1" /> {t.movieInfo}</button>
-</div>
-<p className="text-[10px] text-[#a855f7] mb-2 font-bold uppercase tracking-widest">
-<Info className="w-3 h-3 inline mr-1" /> {t.audioTip}
-</p>
-<div className="flex flex-wrap gap-3">
-{['vidsrc_me', 'superembed'].map((srv, index) => (
-<button key={srv} onClick={() => handlePlayRequest(srv)} className={`px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === srv ? 'bg-[#a855f7] text-white border border-[#a855f7]/30 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}`}>
-{index === 0 ? t.server1 : t.server2}
-</button>
-))}
-
-{/* Domaine Public */}
-{(movie.release_date && parseInt(movie.release_date.substring(0, 4)) <= 1970) && (
-<button onClick={() => handlePlayRequest('archive')} className={`px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'archive' ? 'bg-[#a855f7] text-white border border-[#a855f7]/30 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}`}>
-<Library className="w-3 h-3 inline mr-1 text-gray-400" /> {t.publicDomainDirect}
-</button>
-)}
-
-{/* Serveur Direct (HD) */}
-{getYoutubeFullKey() && (
-<button onClick={() => handlePlayRequest('youtube_full')} className={`ml-auto px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all outline-none ${selectedServer === 'youtube_full' ? 'bg-[#a855f7] text-white border border-[#a855f7]/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-white/5 text-white/70 border border-white/20 hover:bg-white/10'}`}>
-<Clapperboard className="w-3 h-3 inline mr-1 text-[#a855f7]" /> {t.youtubeFull}
-</button>
-)}
-</div>
-</div>
-)}
-
-{(modalMode === 'info' || modalMode === 'trailer') && details && (
-<div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-<div className="flex-1">
-<h2 className="text-3xl md:text-5xl font-black mb-2 text-white uppercase tracking-tighter drop-shadow-lg leading-tight">
-{movie.title || movie.name || movie.original_name}
-</h2>
-<div className="text-[#a855f7] italic text-sm md:text-base font-medium mb-4 drop-shadow-sm flex items-center gap-2">
-<span>{details.tagline ? `"${details.tagline}"` : ''}</span>
-</div>
-
-<div className="flex items-center space-x-3 mb-6 flex-wrap gap-y-3">
-<span className="text-green-400 font-black text-[11px] md:text-[12px] uppercase tracking-widest border border-green-400/30 px-2 py-1 rounded bg-green-400/10 shadow-sm">{t.match}</span>
-{details.status && <span className="text-blue-400 font-bold text-[10px] md:text-[11px] uppercase tracking-widest border border-blue-400/30 px-2 py-1 rounded bg-blue-400/10">{details.status}</span>}
-<span className="text-white/80 font-bold text-[12px] md:text-[13px] border-l border-white/20 pl-3">{(movie.release_date || movie.first_air_date || '').substring(0, 4)}</span>
-<span className="text-white/80 font-bold text-[12px] md:text-[13px] border-l border-white/20 pl-3">{getFormatRuntime()}</span>
-{details.original_language && <span className="text-white/60 font-bold text-[11px] uppercase tracking-widest border-l border-white/20 pl-3">{t.originalLang}: {details.original_language.toUpperCase()}</span>}
-<span className="px-2 py-1 border border-white/20 rounded text-[10px] font-bold text-white uppercase tracking-widest bg-white/5 shadow-sm border-l border-white/20 pl-3 ml-2">HD 1080p</span>
-</div>
-
-<div className="mb-4">
-<span className="text-white/40 font-bold text-[10px] uppercase tracking-widest block mb-1">{t.originalTitle}</span>
-<span className="text-white/70 font-medium text-[12px] italic">{details.original_title || details.original_name || t.notSpecified}</span>
-</div>
-
-{/* Légal */}
-{getProviders() ? (
-<div className="mb-6 p-5 bg-white/5 rounded-2xl border border-white/10 shadow-inner">
-<h4 className="text-white/50 text-[10px] md:text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><Play className="w-4 h-4 text-green-400" /> {t.legalWatch}</h4>
-<div className="flex flex-wrap gap-3">
-{getProviders().unique.slice(0,8).map(p => (
-<a key={p.provider_id} href={getProviders().link} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl px-4 py-2 transition-all hover:scale-105 active:scale-95 no-underline shadow-sm outline-none">
-<img src={`https://image.tmdb.org/t/p/w45${p.logo_path}`} className="w-5 h-5 rounded-md shadow-sm" alt="" draggable="false"/>
-<span className="text-[11px] font-bold text-white">{p.provider_name}</span>
-</a>
-))}
-</div>
-</div>
-) : (
-<div className="mb-6 p-5 bg-white/5 rounded-2xl border border-white/10 shadow-inner">
-<h4 className="text-white/50 text-[10px] md:text-xs uppercase font-bold tracking-widest mb-3 flex items-center gap-2"><Play className="w-4 h-4 text-green-400" /> {t.legalWatch}</h4>
-<p className="text-white/40 text-[11px] italic">{t.noLegal}</p>
-</div>
-)}
-
-<div className="flex flex-wrap gap-3 mb-6">
-<button onClick={() => handlePlayRequest(selectedServer)} className="flex-1 sm:flex-none items-center justify-center flex gap-2 px-8 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] active:scale-95 outline-none">
-<Play className="w-4 h-4 fill-white" /> <span>{t.playMovie}</span>
-</button>
-
-<button
-onClick={() => {
-if (modalMode !== 'trailer') {
-setIframeLoading(true);
-setModalMode('trailer');
-const modalHoloCard = document.querySelector('.holo-card');
-if (modalHoloCard) modalHoloCard.scrollTo({top: 0, behavior: 'smooth'});
-}
-}}
-disabled={modalMode === 'trailer'}
-className={`flex-1 sm:flex-none items-center justify-center flex gap-2 px-6 py-3.5 rounded-xl text-[11px] md:text-[13px] font-black uppercase tracking-widest transition-all active:scale-95 outline-none ${
-modalMode === 'trailer'
-? 'bg-[#a855f7]/10 border border-[#a855f7]/50 text-[#a855f7] cursor-default shadow-inner'
-: 'bg-white/5 border border-white/20 text-white hover:bg-white/10 backdrop-blur-md shadow-md'
-}`}>
-{modalMode === 'trailer' ? (
-<>
-<div className="flex gap-1 items-center justify-center">
-<div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce"></div>
-<div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce" style={{animationDelay: "0.1s"}}></div>
-<div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce" style={{animationDelay: "0.2s"}}></div>
-</div>
-<span>{t.trailerPlaying}</span>
-</>
-) : (
-<><Clapperboard className="w-4 h-4" /> <span>{t.trailer}</span></>
-)}
-</button>
-</div>
-
-<div className="markdown-pro pr-2 text-justify">
-{movie.overview ? movie.overview.split('\n').filter(p=>p.trim()).map((p,i) => <p key={i} className="mb-3">{p}</p>) : <p>{t.noDesc}</p>}
-</div>
-
-<div className="mt-8 flex gap-4 pt-6 border-t border-white/10">
-<button onClick={() => toggleWatchlist(movie)} className={`flex-1 flex items-center justify-center gap-3 px-5 py-3 rounded-xl border transition-all active:scale-95 outline-none ${isAddedToWatchlist ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-white/5 border-white/20 text-white/80 hover:bg-white/10'}`}>
-{isAddedToWatchlist ? <><CheckCircle className="w-5 h-5" /><span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest">{t.alreadyInList}</span></> : <><Plus className="w-5 h-5 text-[#a855f7]" /><span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest">{t.addToList}</span></>}
-</button>
-<button onClick={handleShare} className="flex items-center justify-center gap-3 px-6 py-3 rounded-xl border border-white/20 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 transition-all active:scale-95 outline-none">
-<Share2 className="w-5 h-5 text-blue-400" />
-</button>
-</div>
-</div>
-
-<div className="w-full lg:w-[35%] space-y-6 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/5 shadow-inner h-fit">
-<div>
-<span className="text-white/40 font-bold block mb-3 uppercase tracking-widest text-[10px] flex items-center gap-2"><Users className="w-4 h-4 text-[#a855f7]" /> <span>{t.cast}</span></span>
-<div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 row-container cursor-grab active:cursor-grabbing">
-{details.credits?.cast?.slice(0, 15).map(c => (
-<div key={c.id} className="flex flex-col items-center min-w-[70px] gap-1 shrink-0 select-none">
-<img src={c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=151520&color=a855f7`} className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border border-white/10 shadow-md bg-black/50" draggable="false" alt=""/>
-<span className="text-[9px] text-white/90 text-center font-bold w-[80px] truncate px-1 mt-1">{c.name}</span>
-{c.character && <span className="text-[8px] text-[#a855f7] truncate w-[80px] text-center mt-0.5">{c.character}</span>}
-</div>
-)) || <span className="text-white/50 text-xs">{t.noCasting}</span>}
-</div>
-</div>
-<div className="w-full h-px bg-white/10"></div>
-<div>
-<span className="text-white/40 font-bold block mb-1 uppercase tracking-widest text-[10px] flex items-center gap-2"><Film className="w-4 h-4 text-[#a855f7]" /> {t.director}</span>
-<span className="text-white/90 font-medium text-[12px] block mt-2">{getDirector()}</span>
-</div>
-<div className="w-full h-px bg-white/10"></div>
-<div>
-<span className="text-white/40 font-bold block mb-1 uppercase tracking-widest text-[10px] flex items-center gap-2"><Tags className="w-4 h-4 text-[#a855f7]" /> {t.genresOrigin}</span>
-<span className="text-white/90 font-bold text-[11px] uppercase tracking-widest leading-relaxed block mt-2">
-{details.genres?.map(g => <span key={g.id} className="bg-white/10 px-2 py-1 rounded inline-block mb-1 mr-1">{g.name}</span>)}
-</span>
-<span className="text-white/50 font-medium text-[10px] block mt-2 uppercase tracking-widest">
-{details.production_countries?.map(c => c.name).join(', ')}
-</span>
-</div>
-<div className="w-full h-px bg-white/10"></div>
-<div>
-<span className="text-white/40 font-bold block mb-1 uppercase tracking-widest text-[10px] flex items-center gap-2"><Building className="w-4 h-4 text-[#a855f7]" /> {t.prodFinance}</span>
-<span className="text-white/90 font-medium text-[12px] block mt-2">
-{details.production_companies?.length > 0 ? details.production_companies.map(c=>c.name).join(', ') : "LevelUp Entertainment"}
-</span>
-<span className="text-white/50 font-medium text-[10px] block mt-1">
-{[
-details.budget ? `${t.budget}: $${(details.budget/1000000).toFixed(1)}M` : null,
-details.revenue ? `${t.revenue}: $${(details.revenue/1000000).toFixed(1)}M` : null
-].filter(Boolean).join(' • ')}
-</span>
-</div>
-<div className="w-full h-px bg-white/10"></div>
-<div>
-<span className="text-white/40 font-bold block mb-1 uppercase tracking-widest text-[10px] flex items-center gap-2"><Star className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {t.tmdbReviews}</span>
-<div className="mt-2 text-[11px] text-white/60 font-bold tracking-wide flex items-center gap-2">
-<span className="text-yellow-400 text-base">{details.vote_average ? details.vote_average.toFixed(1) : 'N/A'}</span> <span className="text-white/40">/ 10</span>
-<span className="border-l border-white/20 pl-2 ml-1">{details.vote_count || 0} {t.certifiedReviews}</span>
-</div>
-{details.reviews?.results?.length > 0 && (
-<div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10 text-[11px] text-white/70 italic leading-relaxed shadow-inner">
-"{details.reviews.results[0].content.length > 250 ? details.reviews.results[0].content.substring(0, 250) + '...' : details.reviews.results[0].content}"
-<br/><span className="text-[#a855f7] font-bold mt-2 block">- {details.reviews.results[0].author}</span>
-</div>
-)}
-</div>
-</div>
-</div>
-)}
-
-{details && details.similar?.results?.length > 0 && (
-<div className="mt-12 pt-8 border-t border-white/10">
-<h3 className="text-white/90 text-sm md:text-base font-black mb-5 uppercase tracking-[0.2em] border-l-4 border-[#a855f7] pl-3">{t.similar}</h3>
-<div className="flex overflow-x-auto gap-4 no-scrollbar pb-4 row-container cursor-grab active:cursor-grabbing">
-{details.similar.results.slice(0, 10).map(sm => {
-if(!sm.poster_path) return null;
-return (
-<div key={sm.id} className="relative flex-none cursor-pointer rounded-xl overflow-hidden shadow-lg border border-white/5 bg-[#151520] hover:scale-105 transition-transform w-[120px] md:w-[150px] h-[180px] md:h-[225px]" onClick={() => onSelectSimilar(sm)}>
-<img className="object-cover w-full h-full" src={`${IMAGE_BASE_URL}${sm.poster_path}`} loading="lazy" draggable="false" alt=""/>
-</div>
-)
-})}
-</div>
-</div>
-)}
-</div>
-</div>
 </div>
 );
 }
 
-// Rendu de l'application
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 root.render(<App />);

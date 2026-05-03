@@ -51,7 +51,7 @@ Star, Key, LogOut, Film, Globe, Shield, Network,
 AlertTriangle, CheckCircle, Server, Users, Tags, Building,
 MessageSquare, Check, Plus, Share2, Library, Bookmark, HardDrive, Filter,
 Home, Tv, Clapperboard, History, AlertOctagon, Download, Copy, Lock,
-ArrowDown, ArrowUp, Eye, EyeOff, Send, Mail, Search as SearchIcon, Reply, UserPlus, Power, Pause, ShieldCheck, VolumeX, UserMinus, ShieldAlert, Minimize2
+ArrowDown, ArrowUp, Eye, EyeOff, Send, Mail, Search as SearchIcon, Reply, UserPlus, Power, Pause, ShieldCheck, VolumeX, UserMinus, ShieldAlert
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -352,11 +352,6 @@ modLimitReached: "Limite de 4 modérateurs atteinte.",
 muteUser: "Mettre en sourdine",
 banUser: "Bannir de la room",
 youAreBanned: "Vous avez été banni du salon.",
-bannedModalTitle: "VOUS ÊTES BANNI",
-bannedModalDesc: "Vous avez été définitivement exclu de ce salon par la modération.",
-bannedOkBtn: "Quitter la salle",
-sysBanned: "a banni",
-minimizeRoom: "Réduire",
 leaveNoModWarning: "Vous êtes l'hôte ! Choisissez un modérateur avant de quitter, sinon le salon n'aura plus de chef.",
 closeAnyway: "Fermer quand même",
 assignModBtn: "Nommer un Mod",
@@ -387,9 +382,7 @@ inviteModalTitle: "Partager le Salon",
 inviteModalDesc: "Partagez ce code à vos amis pour qu'ils vous rejoignent. Important : vos amis doivent déjà avoir accès à l'application LevelMovie.",
 copyCodeBtn: "Copier le Code",
 maintenanceTitle: "MAINTENANCE EN COURS",
-maintenanceDesc: "Nous mettons actuellement à jour nos serveurs pour vous offrir une meilleure expérience. LevelMovie sera de retour très vite !",
-searchFriendModalTitle: "Inviter des amis",
-roomResumeHost: "Session en cours détectée. Reconnexion automatique au salon..."
+maintenanceDesc: "Nous mettons actuellement à jour nos serveurs pour vous offrir une meilleure expérience. LevelMovie sera de retour très vite !"
 },
 en: {
 appTitle: "LevelMovie",
@@ -588,11 +581,6 @@ modLimitReached: "Limit of 4 moderators reached.",
 muteUser: "Mute user",
 banUser: "Ban from room",
 youAreBanned: "You have been banned from this room.",
-bannedModalTitle: "YOU ARE BANNED",
-bannedModalDesc: "You have been permanently excluded from this room by moderation.",
-bannedOkBtn: "Leave Room",
-sysBanned: "banned",
-minimizeRoom: "Minimize",
 leaveNoModWarning: "You are the host! Assign a moderator before leaving, or the room will have no leader.",
 closeAnyway: "Close anyway",
 assignModBtn: "Assign a Mod",
@@ -623,9 +611,7 @@ inviteModalTitle: "Share Room",
 inviteModalDesc: "Share this code with your friends so they can join you. Note: your friends must already have access to the LevelMovie app.",
 copyCodeBtn: "Copy Code",
 maintenanceTitle: "MAINTENANCE IN PROGRESS",
-maintenanceDesc: "We are currently updating our servers to give you a better experience. LevelMovie will be back shortly.",
-searchFriendModalTitle: "Invite Friends",
-roomResumeHost: "Active session detected. Auto-reconnecting to your room..."
+maintenanceDesc: "We are currently updating our servers to give you a better experience. LevelMovie will be back shortly."
 }
 };
 
@@ -713,7 +699,6 @@ const [showKey, setShowKey] = useState(false);
 const [partyId, setPartyId] = useState(null);
 const [partyData, setPartyData] = useState(null);
 const [roomEndedInfo, setRoomEndedInfo] = useState(null);
-const [bannedInfo, setBannedInfo] = useState(null);
 
 const [showPartyTutorial, setShowPartyTutorial] = useState(false);
 const [pendingPartyAction, setPendingPartyAction] = useState(null);
@@ -722,7 +707,7 @@ const [showCreatePartyPrompt, setShowCreatePartyPrompt] = useState(false);
 const [createPartyMovie, setCreatePartyMovie] = useState(null);
 const [customRoomName, setCustomRoomName] = useState("");
 
-const [vvHeight, setVvHeight] = useState(window.innerHeight || 800);
+const [vvHeight, setVvHeight] = useState(window.innerHeight);
 
 const t = i18n[lang] || i18n['fr'];
 const defaultUserName = userName || t.defaultUser;
@@ -730,7 +715,7 @@ const defaultUserName = userName || t.defaultUser;
 useEffect(() => {
     if (window.visualViewport) {
         const handleResize = () => {
-            setVvHeight(window.visualViewport?.height || window.innerHeight);
+            setVvHeight(window.visualViewport.height);
             if (document.body.classList.contains('party-mode')) {
                 window.scrollTo(0, 0); 
             }
@@ -776,7 +761,7 @@ useEffect(() => {
     const unsubMaintenance = onSnapshot(
         doc(db, "artifacts", APP_ID, "system", "config"), 
         (docSnap) => {
-            if (docSnap.exists() && docSnap.data().levelmovie_maintenance === true) {
+            if (docSnap.exists() && docSnap.data().maintenance === true) {
                 setIsMaintenance(true);
             } else {
                 setIsMaintenance(false);
@@ -835,10 +820,7 @@ const joinPartyByCode = async (codeStr, currentUser, currentName, currentPhoto) 
 
     // Nettoyage automatique de la barre d'input
     const inputEl = document.getElementById('partyCodeInput');
-    if (inputEl) {
-        inputEl.value = '';
-        inputEl.blur(); // Rétracte le clavier mobile automatiquement
-    }
+    if (inputEl) inputEl.value = '';
 
     try {
         const pRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', cleanCode);
@@ -849,7 +831,6 @@ const joinPartyByCode = async (codeStr, currentUser, currentName, currentPhoto) 
             if (d.status === 'ended') {
                 showToast(t.eventEnded, "error");
                 localStorage.removeItem('pending_party_join');
-                localStorage.removeItem('active_party_id');
                 return;
             }
 
@@ -880,10 +861,6 @@ const joinPartyByCode = async (codeStr, currentUser, currentName, currentPhoto) 
                     messages: arrayUnion({ isSystem: true, action: 'JOIN', name: name, photo: photo, uid: uid, time: Date.now() })
                 });
             }
-            
-            // Mémorise la session active dans le profil utilisateur (pour le multi-device)
-            syncPreferencesToDb({ activePartyId: cleanCode });
-            
         } else {
             showToast(t.invalidPartyCode, "error");
             localStorage.removeItem('pending_party_join');
@@ -958,35 +935,6 @@ if (histSnap.exists() && histSnap.data().items) {
 setRecentlyViewed(histSnap.data().items);
 }
 
-// Vérification d'une session en cours sur un autre appareil
-if (prefSnap.exists() && prefSnap.data().activePartyId) {
-    const actId = prefSnap.data().activePartyId;
-    try {
-        const pRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', actId);
-        const pSnap = await getDoc(pRef);
-        if (pSnap.exists() && pSnap.data().status !== 'ended') {
-            const d = pSnap.data();
-            // Vérifier si l'utilisateur fait toujours partie du salon ou s'il en est l'hôte
-            if (!(d.banned && d.banned.includes(user.uid))) {
-                if (d.hostUid === user.uid || (d.members && d.members.some(m => m.uid === user.uid))) {
-                    if (localStorage.getItem('active_party_id') !== actId) {
-                        showToast(t.roomResumeHost, "success");
-                        localStorage.setItem('active_party_id', actId);
-                        setPartyId(actId);
-                        setCurrentCategory('party');
-                        const res = await fetch(`${BASE_URL}/${d.mediaType}/${d.movieId}?api_key=${API_KEY}&language=${lang === 'fr' ? 'fr-FR' : 'en-US'}`);
-                        const movieData = await res.json();
-                        openModal(movieData, 'play');
-                    }
-                }
-            }
-        } else {
-            // Nettoyage si le salon n'existe plus
-            syncPreferencesToDb({ activePartyId: null });
-        }
-    } catch(e) {}
-}
-
 const pendingParty = localStorage.getItem('pending_party_join');
 const activeParty = localStorage.getItem('active_party_id');
 
@@ -1016,22 +964,11 @@ const unsubscribe = onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', 'p
 if (docSnap.exists() && docSnap.data().status !== 'ended') {
     const data = docSnap.data();
     // Banned verification
-    if (data.banned && data.banned.includes(user?.uid)) {
-        setBannedInfo({ roomName: data.roomName || data.title });
+    if ((data.members && !data.members.some(m => m.uid === user?.uid)) || (data.banned && data.banned.includes(user?.uid))) {
+        showToast(t.youAreBanned, "error");
         setPartyId(null);
         setPartyData(null);
         setSelectedMovie(null);
-        syncPreferencesToDb({ activePartyId: null });
-        localStorage.removeItem('active_party_id');
-        document.body.classList.remove('party-mode');
-        setCurrentCategory('home');
-        return;
-    }
-    if (data.members && !data.members.some(m => m.uid === user?.uid)) {
-        setPartyId(null);
-        setPartyData(null);
-        setSelectedMovie(null);
-        syncPreferencesToDb({ activePartyId: null });
         localStorage.removeItem('active_party_id');
         document.body.classList.remove('party-mode');
         setCurrentCategory('home');
@@ -1049,7 +986,6 @@ if (docSnap.exists() && docSnap.data().status !== 'ended') {
     setPartyId(null);
     setPartyData(null);
     setSelectedMovie(null);
-    syncPreferencesToDb({ activePartyId: null }); // Efface la session
     localStorage.removeItem('active_party_id');
     document.body.classList.remove('party-mode');
     setCurrentCategory('home');
@@ -1400,7 +1336,6 @@ messages: []
 });
 setPartyId(newPartyId);
 localStorage.setItem('active_party_id', newPartyId);
-syncPreferencesToDb({ activePartyId: newPartyId }); // Mémorise pour les autres appareils
 setCurrentCategory('party'); 
 setModalMode('play');
 setShowCreatePartyPrompt(false);
@@ -1490,7 +1425,6 @@ try {
     setPartyId(null);
     setPartyData(null);
     setSelectedMovie(null);
-    syncPreferencesToDb({ activePartyId: null }); // Efface la session
     localStorage.removeItem('active_party_id');
     document.body.classList.remove('party-mode');
     setCurrentCategory('home');
@@ -1582,7 +1516,7 @@ return (
 // --- ECRAN DE MAINTENANCE PRO ---
 if (isMaintenance && !showSplash) {
     return (
-        <div className="bg-[#060608] flex flex-col items-center justify-center min-h-screen w-full p-6 fixed inset-0 z-[9999] overflow-hidden text-center animate-in fade-in duration-500">
+        <div className="bg-[#060608] flex flex-col items-center justify-center h-[100dvh] w-full p-6 fixed inset-0 z-[9999] overflow-hidden text-center animate-in fade-in duration-500">
             <style>{globalStyles}</style>
             <div className="absolute inset-0 bg-[#a855f7]/10 blur-[100px] rounded-full scale-150 pointer-events-none"></div>
             <div className="relative z-10 flex flex-col items-center justify-center max-w-lg mx-auto bg-black/40 p-8 md:p-12 rounded-[2rem] border border-[#a855f7]/30 shadow-[0_0_50px_rgba(168,85,247,0.15)] backdrop-blur-md">
@@ -1604,7 +1538,7 @@ if (!isAllowedBrowser && !showSplash && !hasSkippedBrowserWall) {
     const browserData = getBrowserData();
 
     return (
-    <div className="bg-[#060608] flex flex-col items-center justify-center min-h-screen w-full p-4 fixed inset-0 z-[6000] overflow-hidden">
+    <div className="bg-[#060608] flex flex-col items-center justify-center h-[100dvh] w-full p-4 fixed inset-0 z-[6000] overflow-hidden">
         <style>{globalStyles}</style>
         <button onClick={handleLangToggle} className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center justify-center min-w-[60px] gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all text-white/70 hover:text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest backdrop-blur-md z-[7000] shadow-lg outline-none">
             <Globe className="w-3 h-3 md:w-4 md:h-4 text-[#a855f7]" /> {lang === 'fr' ? 'EN' : 'FR'}
@@ -1830,21 +1764,6 @@ return (
     </div>
 )}
 
-{/* MODAL BANNI */}
-{bannedInfo && (
-    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="bg-[#0a0a0f] border border-red-500/30 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] animate-in zoom-in duration-300">
-            <UserMinus className="w-16 h-16 text-red-500 mx-auto mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]" />
-            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-widest">{t.bannedModalTitle}</h3>
-            <p className="text-white/60 text-xs mb-5">{t.bannedModalDesc}</p>
-            <div className="bg-white/5 p-4 rounded-xl mb-6 shadow-inner border border-white/5">
-                <p className="text-white font-bold text-sm mb-1">{bannedInfo.roomName}</p>
-            </div>
-            <button onClick={() => setBannedInfo(null)} className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors outline-none shadow-[0_0_15px_rgba(239,68,68,0.4)] active:scale-95">{t.bannedOkBtn}</button>
-        </div>
-    </div>
-)}
-
 {/* MODAL CREATION DE SALON (NOM PERSONNALISÉ) */}
 {showCreatePartyPrompt && createPartyMovie && (
     <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
@@ -2062,10 +1981,6 @@ return (
                 <input 
                     type="text" 
                     id="partyCodeInput"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
                     placeholder={t.partyCodePlaceholder}
                     className="flex-1 bg-transparent px-4 py-2.5 text-white font-mono text-[11px] md:text-xs outline-none uppercase tracking-[0.1em]"
                 />
@@ -2672,7 +2587,7 @@ const handleInviteUser = async (friend) => {
         inviteData.emails.push(friend.email);
         localStorage.setItem(`lm_invites_${user.uid}`, JSON.stringify(inviteData));
 
-        showToast(`Nous avons partagé la room à ${friend.name} dans son adresse électronique ${friend.email}`, 'success');
+        showToast(`${t.inviteSent.replace('!', '')} à ${friend.name}`, 'success');
         setShowUserSearch(false);
         setFriendSearchQuery('');
     } catch (error) {
@@ -2713,15 +2628,14 @@ const handleDemoteMod = async (memberUid) => {
     } catch(e) {}
 }
 
-const handleBanUser = async (member) => {
+const handleBanUser = async (memberUid) => {
     if (user?.uid !== partyData.hostUid && !partyData.mods?.includes(user?.uid)) return;
     try {
-        const memberToRemove = partyData.members.find(m => m.uid === member.uid);
+        const memberToRemove = partyData.members.find(m => m.uid === memberUid);
         if (memberToRemove) {
             await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'parties', partyId), {
                 members: arrayRemove(memberToRemove),
-                banned: arrayUnion(member.uid),
-                messages: arrayUnion({ isSystem: true, action: 'BAN', name: defaultUserName, targetName: member.name, photo: userPhoto, uid: user.uid, time: Date.now() })
+                banned: arrayUnion(memberUid)
             });
         }
         setMemberMenu(null);
@@ -2951,7 +2865,7 @@ return (
                                 )
                             )}
                             
-                            <button onClick={() => handleBanUser(memberMenu)} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.banUser}</button>
+                            <button onClick={() => handleBanUser(memberMenu.uid)} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-[10px] font-bold uppercase transition-colors outline-none">{t.banUser}</button>
                             <button onClick={() => setMemberMenu(null)} className="w-full py-3 mt-2 text-white/50 hover:text-white text-[10px] font-bold uppercase transition-colors outline-none">{t.menuCancel}</button>
                         </div>
                     </div>
@@ -3006,67 +2920,6 @@ return (
                             <button onClick={() => { copyToClipboardFallback(partyId); showToast(t.linkCopied, 'success'); setShowInviteModal(false); }} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white rounded-xl text-[10px] font-bold uppercase shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all outline-none">
                                 {t.copyCodeBtn}
                             </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal Recherche d'amis (Invitation) */}
-            {showUserSearch && (
-                <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowUserSearch(false)}>
-                    <div className="bg-[#0a0a0f] border border-[#a855f7]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-[0_0_50px_rgba(168,85,247,0.2)] animate-in zoom-in duration-300 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-widest flex items-center gap-3">
-                                <UserPlus className="w-6 h-6 text-[#a855f7]" /> {t.searchFriendModalTitle}
-                            </h3>
-                            <button onClick={() => setShowUserSearch(false)} className="text-white/40 hover:text-white outline-none bg-white/5 p-2 rounded-full hover:bg-white/10 transition-colors shadow-sm active:scale-95"><X className="w-4 h-4" /></button>
-                        </div>
-                        
-                        <div className="relative mb-5 shrink-0">
-                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                            <input 
-                                type="text" 
-                                value={friendSearchQuery}
-                                onChange={(e) => setFriendSearchQuery(e.target.value)}
-                                placeholder="Rechercher par nom..."
-                                className="w-full bg-black/50 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white outline-none focus:border-[#a855f7] shadow-inner transition-colors"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="overflow-y-auto no-scrollbar flex-1 flex flex-col gap-2 min-h-[200px] bg-white/5 rounded-2xl p-2 border border-white/5 shadow-inner">
-                            {friendResults.map(friend => (
-                                <div key={friend.uid} className="flex items-center justify-between bg-black/40 hover:bg-black/60 border border-white/5 p-3 rounded-xl transition-colors">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="w-10 h-10 rounded-full bg-[#151520] flex items-center justify-center border border-[#a855f7]/30 shadow-sm shrink-0 font-black text-[#a855f7] text-sm">
-                                            {friend.name?.charAt(0).toUpperCase() || '?'}
-                                        </div>
-                                        <div className="flex flex-col min-w-0">
-                                            <span className="text-sm font-bold text-white truncate">
-                                                {friend.name} {friend.uid === user?.uid && <span className="text-[#a855f7] text-[10px] ml-1 uppercase tracking-widest">(Vous)</span>}
-                                            </span>
-                                            <span className="text-[10px] text-white/40 truncate">{friend.email}</span>
-                                        </div>
-                                    </div>
-                                    {friend.uid !== user?.uid && (
-                                        <button onClick={() => handleInviteUser(friend)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase outline-none shadow-md transition-all active:scale-95 shrink-0 ml-2">
-                                            Envoyer
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            {friendSearchQuery.length >= 1 && friendResults.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-full opacity-50 py-10">
-                                    <SearchIcon className="w-8 h-8 mb-3 text-[#a855f7]" />
-                                    <span className="text-[11px] uppercase tracking-widest font-bold">Aucun utilisateur trouvé</span>
-                                </div>
-                            )}
-                            {friendSearchQuery.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-full opacity-30 py-10">
-                                    <Users className="w-8 h-8 mb-3" />
-                                    <span className="text-[10px] uppercase tracking-widest font-bold text-center px-4 leading-relaxed">Tapez un nom pour trouver vos amis</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -3159,10 +3012,6 @@ return (
                             <button onClick={() => setSelectedServer('superembed')} className={`px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-colors outline-none ${selectedServer === 'superembed' ? 'bg-[#a855f7] text-white shadow-md' : 'bg-transparent text-white/50 hover:bg-white/10 hover:text-white'}`}>MULTI</button>
                         </div>
                         
-                        <button onClick={() => { document.body.classList.remove('party-mode'); onClose(); }} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors outline-none shadow-sm shrink-0 whitespace-nowrap">
-                            <Minimize2 className="w-3.5 h-3.5" /> <span className="hidden xl:inline">{t.minimizeRoom}</span>
-                        </button>
-                        
                         {/* Bouton Quitter (Power Rouge Pro) en bas */}
                         <button onClick={() => setShowLeavePartyConfirm(true)} className="bg-red-500/10 hover:bg-red-500 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors outline-none shadow-sm shrink-0 whitespace-nowrap">
                             <Power className="w-3.5 h-3.5" /> <span className="hidden xl:inline">{t.closeLive}</span>
@@ -3183,18 +3032,53 @@ return (
                         <div className="flex flex-col items-center px-1">
                             <span className="text-[7px] text-white/30 font-black tracking-widest">OU</span>
                         </div>
-                        <button onClick={() => setShowUserSearch(true)} className="flex-1 bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-600 hover:to-pink-600 text-white text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all active:scale-95 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-1.5 outline-none shadow-inner border border-white/10">
+                        <button onClick={() => setShowUserSearch(!showUserSearch)} className="flex-1 bg-gradient-to-r from-purple-600/80 to-pink-600/80 hover:from-purple-600 hover:to-pink-600 text-white text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl transition-all active:scale-95 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-1.5 outline-none shadow-inner border border-white/10">
                             <UserPlus className="w-3.5 h-3.5" /> <span className="text-center leading-tight whitespace-nowrap">{t.inviteFriendBtn}</span>
                         </button>
                     </div>
+                    
+                    {showUserSearch && (
+                        <div className="absolute top-[4rem] left-4 right-4 bg-[#151520] border border-white/10 rounded-2xl shadow-2xl z-[100] p-4 animate-in slide-in-from-top-4 duration-200">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{t.searchFriend}</span>
+                                <button onClick={() => setShowUserSearch(false)} className="text-white/40 hover:text-white outline-none"><X className="w-4 h-4" /></button>
+                            </div>
+                            <input 
+                                type="text" 
+                                value={friendSearchQuery}
+                                onChange={(e) => setFriendSearchQuery(e.target.value)}
+                                placeholder="Tapez un nom..."
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#a855f7] mb-2"
+                                autoFocus
+                            />
+                            <div className="max-h-40 overflow-y-auto no-scrollbar flex flex-col gap-2">
+                                {friendResults.map(friend => (
+                                    <div key={friend.uid} className="flex items-center justify-between bg-white/5 p-2 rounded-xl">
+                                        <div className="flex items-center gap-2">
+                                            <img src={friend.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=151520&color=a855f7`} className="w-6 h-6 rounded-full object-cover" alt="" />
+                                            <span className="text-xs font-bold truncate max-w-[100px]">
+                                                {friend.name} {friend.uid === user?.uid && <span className="text-[#a855f7] text-[9px] ml-1">(Vous)</span>}
+                                            </span>
+                                        </div>
+                                        {friend.uid !== user?.uid && (
+                                            <button onClick={() => handleInviteUser(friend)} className="bg-[#a855f7]/20 text-[#a855f7] px-2 py-1 rounded-md text-[9px] font-black uppercase outline-none hover:bg-[#a855f7] hover:text-white transition-colors">
+                                                Envoyer
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {friendSearchQuery.length >= 1 && friendResults.length === 0 && <span className="text-[10px] text-white/40 text-center block my-2">Aucun utilisateur trouvé.</span>}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Liste Membres */}
                 <div className="px-3 py-2 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar shrink-0 items-center bg-black/20">
                     {partyData.members?.map(m => (
                         <div key={m.uid} onClick={(e) => { e.stopPropagation(); openMemberMenu(m); }} className={`relative group flex flex-col items-center shrink-0 ${(user?.uid === partyData.hostUid || partyData.mods?.includes(user?.uid)) && m.uid !== user?.uid ? 'cursor-pointer hover:opacity-80' : ''}`}>
-                            <div className={`w-8 h-8 rounded-full bg-[#151520] flex items-center justify-center font-black text-[12px] text-[#a855f7] border-[2px] shadow-sm overflow-hidden ${m.uid === partyData.hostUid ? 'border-[#a855f7]' : (partyData.mods?.includes(m.uid) ? 'border-blue-500' : 'border-white/20')}`}>
-                                {m.name?.charAt(0).toUpperCase() || '?'}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] border-[2px] shadow-sm overflow-hidden ${m.uid === partyData.hostUid ? 'border-[#a855f7]' : (partyData.mods?.includes(m.uid) ? 'border-blue-500' : 'border-white/20')}`}>
+                                {m.photo ? <img src={m.photo} className="w-full h-full object-cover" alt="" /> : m.name?.charAt(0).toUpperCase()}
                             </div>
                             {m.uid === partyData.hostUid && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#a855f7] rounded-full border-2 border-[#111116] flex items-center justify-center"><Star className="w-2 h-2 fill-white text-white"/></div>}
                             {partyData.mods?.includes(m.uid) && m.uid !== partyData.hostUid && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-[#111116] flex items-center justify-center"><ShieldCheck className="w-2 h-2 fill-white text-white"/></div>}
@@ -3222,16 +3106,15 @@ return (
                             else if (msg.action === 'PAUSE') sysText = `${t.sysPaused}`;
                             else if (msg.action === 'PLAY') sysText = `${t.sysPlayed}`;
                             else if (msg.action === 'ADS') sysText = `${t.sysAds}`;
-                            else if (msg.action === 'BAN') sysText = `${t.sysBanned} ${msg.targetName} de la room.`;
 
                             return (
-                                <div key={i} className={`flex items-start w-full group mb-2 p-1 -mx-1 rounded-lg ${msg.action === 'BAN' ? 'bg-red-500/10 border border-red-500/20' : ''}`}>
-                                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center mr-2.5 shrink-0 mt-0.5 shadow-sm ${msg.action === 'BAN' ? 'bg-red-500/20 border-red-500/30' : 'bg-[#a855f7]/20 border-[#a855f7]/30'}`}>
-                                        {msg.action === 'BAN' ? <UserMinus className="w-3 h-3 text-red-500" /> : <Bell className="w-3 h-3 text-[#a855f7]" />}
+                                <div key={i} className="flex items-start w-full group mb-2 p-1 -mx-1 rounded-lg">
+                                    <div className="w-6 h-6 rounded-full bg-[#a855f7]/20 border border-[#a855f7]/30 flex items-center justify-center mr-2.5 shrink-0 mt-0.5 shadow-sm">
+                                        <Bell className="w-3 h-3 text-[#a855f7]" />
                                     </div>
                                     <div className="flex-1 text-[12px] md:text-[13px] leading-snug drop-shadow-md break-words pt-0.5 text-white/60 italic">
-                                        <span className={`font-bold mr-1 ${msg.action === 'BAN' ? 'text-red-500' : 'text-[#a855f7]'}`}>Alerte</span>
-                                        <span className={msg.action === 'BAN' ? 'text-red-200/80' : 'text-white/60'}>{msg.name} {sysText}</span>
+                                        <span className="font-bold mr-1 text-[#a855f7]">Alerte</span>
+                                        <span className="text-white/60">{msg.name} {sysText}</span>
                                     </div>
                                 </div>
                             );
@@ -3240,9 +3123,7 @@ return (
                         return (
                         <div key={i} className="flex items-start w-full group mb-2 cursor-pointer hover:bg-white/5 p-1.5 -mx-1.5 rounded-lg transition-colors chat-msg">
                             {/* Avatar (Ouvre le menu modération) */}
-                            <div onClick={(e) => { e.stopPropagation(); if(msg.uid !== user?.uid) openMemberMenu(msg); }} className="w-6 h-6 rounded-full bg-[#151520] flex items-center justify-center font-black text-[10px] text-[#a855f7] mr-2.5 shrink-0 border border-white/10 shadow-sm mt-0.5 hover:opacity-80">
-                                {msg.name?.charAt(0).toUpperCase() || '?'}
-                            </div>
+                            <img src={msg.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.name)}&background=151520&color=a855f7`} onClick={(e) => { e.stopPropagation(); if(msg.uid !== user?.uid) openMemberMenu(msg); }} className="w-6 h-6 rounded-full object-cover mr-2.5 shrink-0 border border-white/10 shadow-sm mt-0.5 hover:opacity-80" alt=""/>
                             
                             <div className="flex-1 text-[12px] md:text-[13px] leading-snug drop-shadow-md break-words pt-0.5" onClick={() => { if(msg.uid !== user?.uid) setReplyingTo({ name: msg.name, text: msg.text }) }}>
                                 {/* Reply Indicator */}

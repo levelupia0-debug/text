@@ -401,108 +401,6 @@ footer{border-top:1px solid var(--bdr);padding:72px 5% 36px}
 .help-card h4{font-size:.87rem;margin-bottom:6px;font-family:var(--sans)}
 .help-card p{font-size:.8rem}
 
-/* ── IA FLOATING BUTTON (SMART PROGRESS) ── */
-.ia-float-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
-@media(max-width:820px){ .ia-float-wrap { bottom: 85px; right: 16px; } }
-.ia-menu { display: flex; flex-direction: column; gap: 8px; opacity: 0; transform: translateY(15px) scale(0.9); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; transform-origin: bottom right; }
-.ia-float-wrap.open .ia-menu { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-.ia-menu-btn { background: rgba(10,10,10,0.85); border: 1px solid var(--bdr-hi); border-radius: var(--r12); padding: 12px 18px; color: var(--txt); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: all 0.2s; white-space: nowrap; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.ia-menu-btn:hover { background: var(--elev); border-color: var(--purple); transform: translateX(-4px); color: white; }
-.ia-menu-btn i { color: var(--purple); font-size: 1.1rem; width: 20px; text-align: center; }
-.ia-main-btn { width: 58px; height: 58px; border-radius: 50%; background: var(--surf); border: 2px solid var(--bdr-hi); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.6); pointer-events: auto; position: relative; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.ia-main-btn:hover { transform: scale(1.06); border-color: var(--purple); box-shadow: 0 8px 28px rgba(168,85,247,0.3); }
-.ia-main-btn svg.progress-ring { position: absolute; top: -2px; left: -2px; width: 58px; height: 58px; transform: rotate(-90deg); pointer-events: none; }
-.ia-main-btn circle.progress-track { fill: none; stroke: transparent; stroke-width: 2.5; }
-.ia-main-btn circle.progress-fill { fill: none; stroke: var(--purple); stroke-width: 2.5; stroke-dasharray: 163.36; stroke-dashoffset: 163.36; transition: stroke-dashoffset 0.15s ease-out; stroke-linecap: round; }
-.ia-icon { font-size: 1.4rem; color: var(--purple); transition: all 0.3s; filter: drop-shadow(0 0 6px rgba(168,85,247,0.5)); }
-.ia-float-wrap.open .ia-main-btn { border-color: var(--purple); background: var(--surf); box-shadow: 0 0 25px rgba(168,85,247,0.4); }
-.ia-float-wrap.open .ia-icon { transform: rotate(135deg); color: var(--purple); }
-.ia-tooltip { position: absolute; right: 74px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); padding: 6px 12px; border-radius: var(--r12); font-size: 0.75rem; font-weight: 600; color: #d8b4fe; white-space: nowrap; opacity: 0; transform: translateX(10px); transition: all 0.3s; pointer-events: none; backdrop-filter: blur(4px); }
-.ia-main-btn:hover .ia-tooltip { opacity: 1; transform: translateX(0); }
-.ia-float-wrap.open .ia-tooltip { display: none; }
-
-/* IA Message Pro - REPOSITIONNÉ AU DESSUS DU BOUTON */
-.ia-welcome-msg {
-    position: absolute; right: 0; bottom: 85px; /* Déplacé vers le haut */
-    background: rgba(10,10,10,0.85); border: 1px solid rgba(168,85,247,0.3);
-    padding: 8px 14px; border-radius: var(--r12); font-size: 0.8rem; font-weight: 500;
-    color: #e4e4e7; white-space: nowrap; backdrop-filter: blur(12px);
-    animation: msgPopFade 5s cubic-bezier(0.4, 0, 0.2, 1) forwards; pointer-events: none;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    display: flex; align-items: center; gap: 8px;
-}
-.ia-welcome-msg i { color: var(--purple); font-size: 0.9rem; }
-@keyframes msgPopFade {
-    0% { opacity: 0; transform: translateY(15px); }
-    10% { opacity: 1; transform: translateY(0); }
-    85% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(10px); visibility: hidden; }
-}
-
-/* ── IA WIDGET (INTÉGRÉ + THEME ESPACE) ── */
-#iaWidget { position: fixed; z-index: 100000; background: #030008; border: 1px solid rgba(168,85,247,0.3); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; transform: translateY(20px) scale(0.95); pointer-events: none; }
-#iaWidget::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; background-image: radial-gradient(1.5px 1.5px at 15% 20%, #fff, transparent), radial-gradient(1px 1px at 85% 30%, #fff, transparent), radial-gradient(2px 2px at 45% 60%, #fff, transparent), radial-gradient(1px 1px at 70% 80%, #d8b4fe, transparent), radial-gradient(1.5px 1.5px at 25% 85%, #fff, transparent), radial-gradient(2px 2px at 90% 10%, #a855f7, transparent); background-size: 180px 180px; animation: spaceDrift 80s linear infinite; opacity: 0.8; }
-@keyframes spaceDrift { 0% { background-position: 0 0; } 100% { background-position: -360px 360px; } }
-#iaWidget.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-.ia-widget-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(3,0,8,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(168,85,247,0.2); flex-shrink: 0; }
-.ia-w-title { font-size: 0.9rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; gap: 8px; font-family: var(--sans); }
-.ia-w-title i { color: var(--purple); transition: transform 0.3s; }
-.ia-w-title i.fa-spin { animation: fa-spin 1.5s infinite linear; filter: drop-shadow(0 0 8px var(--purple)); }
-.ia-w-close { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--txt); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-.ia-w-close:hover { background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.3); box-shadow: 0 4px 15px rgba(239,68,68,0.2); transform: translateY(-1px); }
-.ia-w-close:active { transform: translateY(1px); }
-#iaIframe { flex: 1; width: 100%; height: 100%; background: transparent; border: none; } /* Fond transparent pour laisser voir l'espace */
-
-/* Zone de texte et bouton d'envoi du Widget (NOUVEAU DESIGN PRO) */
-.ia-widget-footer { padding: 12px 16px; background: rgba(3,0,8,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(168,85,247,0.2); flex-shrink: 0; }
-.ia-w-input-wrap { display: flex; align-items: center; background: rgba(255,255,255,0.04); border: 1px solid rgba(168,85,247,0.4); border-radius: 30px; padding: 5px 5px 5px 16px; transition: all 0.3s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2); }
-.ia-w-input-wrap:focus-within { background: rgba(168,85,247,0.08); border-color: var(--purple); box-shadow: 0 0 0 2px rgba(168,85,247,0.2), inset 0 2px 10px rgba(0,0,0,0.2); }
-.ia-w-input { flex: 1; background: transparent; border: none; color: var(--txt); font-size: 0.92rem; outline: none; font-family: var(--sans); }
-.ia-w-input::placeholder { color: var(--muted); }
-.ia-w-send { width: 34px; height: 34px; border-radius: 50%; background: var(--purple); color: white; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); flex-shrink: 0; box-shadow: 0 4px 10px rgba(168,85,247,0.4); }
-.ia-w-send:hover { transform: scale(1.1); background: #b062ff; box-shadow: 0 6px 15px rgba(168,85,247,0.6); }
-.ia-w-send:active { transform: scale(0.95); }
-
-/* NOUVEAUX BOUTONS PRO (OFF & REDUIRE) */
-.ia-w-off { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: #fca5a5; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-family: var(--sans); }
-.ia-w-off:hover { background: #ef4444; color: #fff; border-color: #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transform: scale(0.97); }
-.ia-w-off i { font-size: 0.8rem; }
-.ia-w-min { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--txt); width: 28px; height: 28px; border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; flex-shrink: 0; }
-.ia-w-min:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
-
-/* NOUVEAU MENU DES SUGGESTIONS IA */
-.ia-prompts-bar { display: flex; gap: 8px; padding: 10px 16px 0; overflow-x: auto; background: rgba(3,0,8,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); scrollbar-width: none; flex-shrink: 0; }
-.ia-prompts-bar::-webkit-scrollbar { display: none; }
-.ia-prompt-pill { white-space: nowrap; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); color: #d8b4fe; font-size: 0.76rem; font-weight: 500; padding: 6px 14px; border-radius: var(--r-full); cursor: pointer; transition: all 0.2s; flex-shrink: 0; font-family: var(--sans); }
-.ia-prompt-pill:hover { background: rgba(168,85,247,0.25); color: white; transform: translateY(-1px); }
-.ia-prompt-more { background: rgba(255,255,255,0.05); color: var(--muted); border-color: rgba(255,255,255,0.1); }
-.ia-prompt-more:hover { background: rgba(255,255,255,0.1); color: white; }
-
-/* TABLEAU DES SUGGESTIONS (OVERLAY) */
-.ia-prompts-grid-ov { position: absolute; inset: 0; top: 56px; background: rgba(3,0,8,0.95); z-index: 10; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: none; flex-direction: column; animation: tFade 0.2s ease; border-top: 1px solid rgba(255,255,255,0.05); }
-.ia-prompts-grid-ov.show { display: flex; }
-.ia-pg-head { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
-.ia-pg-body { padding: 16px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
-
-/* CACHER L'ETOILE DANS LE DASHBOARD */
-body.in-dashboard #iaFloatWrap { display: none !important; }
-
-/* PC (Desktop): Widget Flottant */
-@media (min-width: 821px) {
-    #iaWidget { bottom: 100px; right: 24px; width: 420px; height: 680px; max-height: calc(100vh - 130px); border-radius: var(--r20); }
-}
-/* Mobile: Plein écran et Mode Réduit */
-@media (max-width: 820px) {
-    .ia-w-min { display: flex; } /* Afficher le bouton réduire sur mobile */
-    #iaWidget { inset: 0; width: 100%; height: 100%; border-radius: 0; border: none; transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .ia-widget-header { padding-top: max(12px, env(safe-area-inset-top)); }
-   
-    /* MODE REDUIT (Picture-in-Picture) */
-    #iaWidget.minimized { inset: auto 16px 24px 16px; height: 56px; width: auto; border-radius: 30px; border: 1px solid rgba(168,85,247,0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.8); background: rgba(3,0,8,0.95); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-    #iaWidget.minimized .ia-widget-header { padding: 0 16px; height: 100%; border-bottom: none; background: transparent; }
-    #iaWidget.minimized #iaIframe, #iaWidget.minimized .ia-widget-footer, #iaWidget.minimized .ia-prompts-bar, #iaWidget.minimized .ia-prompts-grid-ov { display: none !important; }
-}
-
 /* ═══ OVERLAYS ═══ */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:900;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .auth-card{background:var(--surf);border:1px solid var(--bdr-hi);border-radius:var(--r24);width:100%;max-width:400px;padding:36px;text-align:center;animation:cIn .32s cubic-bezier(0.34,1.46,0.64,1);position:relative;margin:auto}
@@ -1500,15 +1398,6 @@ DASHBOARD (CENTRE DE CONTRÔLE)
 <button class="btn btn-g btn-xs" onclick="pinFlow()"><span id="setPinBtn">Configurer</span></button>
 </div>
 </div>
-<!-- NOUVELLE SECTION POUR LES NOTIFICATIONS -->
-<div class="set-sec">
-<div class="set-title">Notifications Push</div>
-<div class="set-row">
-<div class="set-info"><h5>Alertes et Nouveautés</h5><p id="notifStatus">Recevoir les alertes importantes en arrière-plan</p></div>
-<button class="btn btn-p btn-xs" id="btnEnableNotifs" onclick="demanderPermissionNotif()"><i class="fa-solid fa-bell"></i> Activer</button>
-</div>
-</div>
-<!-- FIN DE LA NOUVELLE SECTION -->
 <div class="set-sec">
 <div class="set-title">Conditions &amp; Légal</div>
 <div class="set-row" style="cursor:pointer" onclick="openTerms()">
@@ -1561,65 +1450,6 @@ DASHBOARD (CENTRE DE CONTRÔLE)
 <div class="mn-item" onclick="confirmLogout()"><i class="fa-solid fa-right-from-bracket"></i><span>Sortir</span></div>
 </div>
 </div>
-</div>
-
-<!-- ── IA WIDGET (IFRAME INTEGREE) ── -->
-<div id="iaWidget">
-    <div class="ia-widget-header">
-        <div class="ia-w-title"><i class="fa-solid fa-star" id="iaHeaderStar"></i> Assistant LevelUp</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <button class="ia-w-min" onclick="window.toggleIaMin()"><i class="fa-solid fa-minus"></i></button>
-            <button class="ia-w-off" onclick="closeIaWidget()"><i class="fa-solid fa-power-off"></i> OFF</button>
-        </div>
-    </div>
-   
-    <!-- Tableau complet des Suggestions (Overlay interne) -->
-    <div class="ia-prompts-grid-ov" id="iaPromptsGrid">
-        <div class="ia-pg-head">
-            <h4 style="font-size:0.9rem; color:var(--txt); display:flex; align-items:center; gap:8px; font-family:var(--sans); font-weight:700;"><i class="fa-solid fa-list-ul" style="color:var(--purple);"></i> Toutes les suggestions</h4>
-            <button onclick="document.getElementById('iaPromptsGrid').classList.remove('show')" style="background:rgba(255,255,255,0.05); border:1px solid var(--bdr); color:var(--txt); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="ia-pg-body" id="iaPromptsContainerFull"></div>
-    </div>
-
-    <!-- L'URL sera assistant.html pour avoir une interface 100% propre -->
-    <iframe id="iaIframe" src="" allow="clipboard-write"></iframe>
-   
-    <!-- Barre de suggestions rapides -->
-    <div class="ia-prompts-bar" id="iaPromptsBar"></div>
-
-    <!-- Zone de saisie rapide NOUVEAU DESIGN -->
-    <div class="ia-widget-footer">
-        <div class="ia-w-input-wrap">
-            <input type="text" class="ia-w-input" id="iaQuickInput" placeholder="Posez une question à l'Assistant..." onkeydown="if(event.key === 'Enter') window.sendQuickIaMsg()">
-            <button class="ia-w-send" onclick="window.sendQuickIaMsg()"><i class="fa-solid fa-arrow-up"></i></button>
-        </div>
-    </div>
-</div>
-
-<!-- ── IA FLOATING AGENT (SMART BUTTON) ── -->
-<div class="ia-float-wrap" id="iaFloatWrap">
-<div class="ia-menu">
-<!-- CORRECTION : Ce bouton appelle openAssistant() et non openApp() -->
-<button class="ia-menu-btn" onclick="window.openAssistant()">
-<i class="fa-solid fa-star"></i> Lancer l'Assistant IA
-</button>
-<button class="ia-menu-btn" id="iaAuthBtn" onclick="window.openAuth('login')">
-<i class="fa-regular fa-user"></i> Connexion
-</button>
-<button class="ia-menu-btn" id="iaScrollBtn" onclick="window.scrollTo({top:0, behavior:'smooth'}); document.getElementById('iaFloatWrap').classList.remove('open');">
-<i class="fa-solid fa-arrow-up"></i> Revenir tout en haut
-</button>
-</div>
-<div class="ia-welcome-msg" id="iaWelcomeMsg"><i class="fa-solid fa-star"></i> Level IA à votre service</div>
-<button class="ia-main-btn" onclick="window.toggleIaMenu()">
-<svg class="progress-ring">
-<circle class="progress-track" cx="29" cy="29" r="26"></circle>
-<circle class="progress-fill" id="iaProgressFill" cx="29" cy="29" r="26"></circle>
-</svg>
-<i class="fa-solid fa-star ia-icon" id="iaMainIcon"></i>
-<div class="ia-tooltip" id="iaTooltipTxt">0%</div>
-</button>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -2062,21 +1892,6 @@ FIREBASE & APP LOGIC
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collectionGroup, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
-
-// --- NETTOYAGE URL (Sécurité SSO) ---
-// Si l'utilisateur fait "Retour" et que la clé est dans l'URL, on l'efface pour la protéger
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('lvl_key')) {
-    urlParams.delete('lvl_key');
-    urlParams.delete('lvl_uid');
-    urlParams.delete('lvl_name');
-    urlParams.delete('lvl_photo');
-    urlParams.delete('lvl_email');
-    let newUrl = window.location.pathname;
-    if (urlParams.toString()) newUrl += '?' + urlParams.toString();
-    window.history.replaceState({}, document.title, newUrl);
-}
 
 const cfg = {
 apiKey: "AIzaSyA3JgvNu5p-43037jvm4WRDaJHI9ES7uGM",
@@ -2089,139 +1904,13 @@ appId: "1:229420004282:web:6735f059a947f0936ae383"
 const fbApp = initializeApp(cfg);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
-const messaging = getMessaging(fbApp);
 const gProv = new GoogleAuthProvider();
 gProv.setCustomParameters({ prompt: 'select_account' });
 
-window._auth = auth; window._db = db; window._messaging = messaging;
+window._auth = auth; window._db = db;
 window._fb = { doc, setDoc, getDoc, signOut, collectionGroup, getDocs, collection, query, where };
-// 🌟 GESTION DES NOTIFICATIONS (NOUVEAU) 🌟
 
-window.demanderPermissionNotif = async function() {
-    console.log("Demande de permission pour les notifications...");
-    const btn = document.getElementById('btnEnableNotifs');
-    if(btn) btn.disabled = true;
-
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Permission de notification accordée.');
-            toast_('Permission accordée. Configuration en cours...', 'info');
-            await configurerNotifications();
-        } else {
-            console.log('Permission de notification refusée.');
-            toast_('Les notifications ont été refusées.', 'warn');
-            if(btn) btn.disabled = false;
-        }
-    } catch (error) {
-        console.error('Erreur lors de la demande de permission', error);
-        toast_('Erreur lors de la demande. Veuillez réessayer.', 'err');
-        if(btn) btn.disabled = false;
-    }
-};
-
-async function configurerNotifications() {
-    try {
-        // Enregistrement du Service Worker
-        if ('serviceWorker' in navigator) {
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log('Service Worker enregistré avec succès:', registration);
-           
-            // Récupération du Token
-            // REMPLACE LA VAPID KEY PAR LA TIENNE DEPUIS FIREBASE CONSOLE (Paramètres du projet > Cloud Messaging > Certificats d'envoi Web)
-            const vapidKey = "BGw-iZk9vQh1hTfX30nF9N6W-0sYQ9x1cQ7bV0M_Fj1hC7E-Z1z6A9t7-3wO9Yg0j7-W6Yx9N6W-0sYQ9x1cQ7b";
-           
-            const currentToken = await getToken(window._messaging, {
-                vapidKey: vapidKey,
-                serviceWorkerRegistration: registration
-            });
-
-            if (currentToken) {
-                console.log('Token FCM récupéré:', currentToken);
-                await sauvegarderTokenFCM(currentToken);
-                mettreAJourUINotifs(true);
-                toast_('Notifications activées avec succès !', 'ok');
-            } else {
-                console.log('Aucun token de registre disponible. Demandez la permission pour générer un token.');
-                toast_('Impossible de générer le token pour les alertes.', 'err');
-                mettreAJourUINotifs(false);
-            }
-        } else {
-            console.warn("Les Service Workers ne sont pas supportés par ce navigateur.");
-            toast_("Votre navigateur ne supporte pas les notifications en arrière-plan.", "warn");
-        }
-    } catch (err) {
-        console.error('Une erreur s\'est produite lors de la récupération du token. ', err);
-        toast_('Erreur lors de l\'activation des alertes.', 'err');
-        mettreAJourUINotifs(false);
-    }
-}
-
-async function sauvegarderTokenFCM(token) {
-    const u = window._user;
-    if (!u) return;
-
-    try {
-        // On sauvegarde le token dans le profil de l'utilisateur
-        const userRef = doc(window._db, 'artifacts', 'level-ia-premium', 'users', u.uid, 'profile', 'data');
-        await setDoc(userRef, { fcmToken: token }, { merge: true });
-        console.log("Token FCM sauvegardé dans Firestore.");
-    } catch (e) {
-        console.error("Erreur lors de la sauvegarde du token FCM", e);
-    }
-}
-
-function mettreAJourUINotifs(estActive) {
-    const btn = document.getElementById('btnEnableNotifs');
-    const statusTxt = document.getElementById('notifStatus');
-   
-    if(btn) {
-        if(estActive) {
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Activé';
-            btn.classList.remove('btn-p');
-            btn.classList.add('btn-g');
-            btn.disabled = true;
-            if(statusTxt) statusTxt.textContent = "Vous recevrez les alertes importantes.";
-            if(statusTxt) statusTxt.style.color = "var(--green)";
-        } else {
-            btn.innerHTML = '<i class="fa-solid fa-bell"></i> Activer';
-            btn.classList.add('btn-p');
-            btn.classList.remove('btn-g');
-            btn.disabled = false;
-            if(statusTxt) statusTxt.textContent = "Recevoir les alertes importantes en arrière-plan";
-            if(statusTxt) statusTxt.style.color = "var(--muted)";
-        }
-    }
-}
-
-// Écouter les messages quand l'application est AU PREMIER PLAN
-onMessage(window._messaging, (payload) => {
-    console.log('Message reçu au premier plan : ', payload);
-    const title = payload.notification?.title || payload.data?.title || "Nouvelle Alerte LevelUp";
-    const body = payload.notification?.body || payload.data?.body || "";
-    toast_(`${title} : ${body}`, 'info');
-});
-
-// Vérifier l'état des notifications au chargement du tableau de bord
-function verifierEtatNotifs() {
-    if (Notification.permission === 'granted') {
-        mettreAJourUINotifs(true);
-        // Si on a déjà la permission, on essaie de récupérer le token discrètement pour s'assurer qu'il est à jour dans la BDD
-        if(window._user) {
-            configurerNotifications();
-        }
-    } else if (Notification.permission === 'denied') {
-        const statusTxt = document.getElementById('notifStatus');
-        if(statusTxt) statusTxt.textContent = "Notifications bloquées par votre navigateur.";
-        if(statusTxt) statusTxt.style.color = "var(--red)";
-        const btn = document.getElementById('btnEnableNotifs');
-        if(btn) btn.disabled = true;
-    } else {
-        mettreAJourUINotifs(false);
-    }
-}
-
-// --------------------------------------------------
+// SUPPRIMÉ : l'appel prématuré à signInAnonymously qui écrasait la session Google au rechargement.
 
 window.googleSignIn = async function() {
 const btn = document.getElementById('gSignInBtn');
@@ -2353,193 +2042,44 @@ setTimeout(() => {
 // 🌟 LE PONT D'ÉCOSYSTÈME (SSO) 🌟
 window.openApp = function(appId) {
 if (!window._user) {
-    toast_('Vous devez vous connecter pour débloquer cette application.', 'warn');
-    openAuth('login');
-    return;
-} else if (!window._ud?.apiKey) {
-    toast_('Une clé d\'accès est requise. Générez-la maintenant.', 'err');
-    window.openDashboard();
-    pnl('keys');
-    return;
+toast_('Vous devez vous connecter pour débloquer cette application.', 'warn');
+openAuth('login');
+return;
+}
+if (!window._ud?.apiKey) {
+toast_('Une clé d\'accès est requise. Générez-la maintenant.', 'err');
+window.openDashboard();
+pnl('keys');
+return;
 }
 
-const d = window._ud || {};
+const d = window._ud;
 
+// Construction du paquet de données (Profile + Key) à transmettre
 const payload = new URLSearchParams({
-lvl_key: d.apiKey || '',
-lvl_uid: d.uid || '',
+lvl_key: d.apiKey,
+lvl_uid: d.uid,
 lvl_name: d.displayName || localStorage.getItem('lm_name') || '',
 lvl_photo: d.photoURL || localStorage.getItem('lm_photo') || '',
 lvl_email: d.email || ''
 }).toString();
 
 let targetUrl = '';
+const s = window._appsStatus || {};
 
 if (appId === 'movie') {
 targetUrl = 'movie.html';
 } else if (appId === 'music') {
 targetUrl = 'music.html';
 } else if (appId === 'ia') {
-// L'application complète Level IA !
-targetUrl = 'https://ecosystem-of-levelup.vercel.app/ia.html';
+targetUrl = 'ia.html';
 }
 
 if (targetUrl) {
+// Ajout des données à l'URL de l'application
 const finalUrl = targetUrl.includes('?') ? `${targetUrl}&${payload}` : `${targetUrl}?${payload}`;
-// TOUTES LES APPLICATIONS S'OUVRENT DANS UN NOUVEL ONGLET DESORMAIS !
 window.open(finalUrl, '_blank');
 }
-};
-
-// 🌟 LES 16+ SUGGESTIONS ALEATOIRES 🌟
-const IA_PROMPTS = [
-    "Comment utiliser LevelMovie ?",
-    "Comment fonctionne LevelMusic ?",
-    "C'est quoi une clé d'accès LVL ?",
-    "Comment changer mon code PIN ?",
-    "LevelUp est-il vraiment gratuit ?",
-    "Qui a créé LevelUp Ecosystem ?",
-    "Comment activer la mémoire cloud ?",
-    "Quels sont les modes de l'IA ?",
-    "Comment lire un PDF avec l'IA ?",
-    "Est-ce que mes données sont sécurisées ?",
-    "Quand sort l'application mobile ?",
-    "Comment fonctionne le pont SSO ?",
-    "C'est quoi le mode Marco ?",
-    "Puis-je partager ma clé LVL ?",
-    "Comment utiliser la lecture d'URL ?",
-    "Où sont stockées mes conversations ?"
-];
-
-window.loadIaPrompts = function() {
-    // Mélange le tableau aléatoirement
-    const shuffled = [...IA_PROMPTS].sort(() => 0.5 - Math.random());
-    const bar = document.getElementById('iaPromptsBar');
-    const grid = document.getElementById('iaPromptsContainerFull');
-
-    // Remplir la barre (3 aléatoires + bouton Voir plus)
-    if(bar) {
-        bar.innerHTML = '';
-        for(let i=0; i<3; i++) {
-            bar.innerHTML += `<button class="ia-prompt-pill" onclick="window.sendIaPrompt('${shuffled[i].replace(/'/g, "\\'")}')">${shuffled[i]}</button>`;
-        }
-        bar.innerHTML += `<button class="ia-prompt-pill ia-prompt-more" onclick="document.getElementById('iaPromptsGrid').classList.add('show')"><i class="fa-solid fa-grid-2"></i> Voir plus</button>`;
-    }
-
-    // Remplir la grille complète
-    if(grid) {
-        grid.innerHTML = '';
-        IA_PROMPTS.forEach(p => {
-            grid.innerHTML += `<button class="ia-prompt-pill" style="white-space:normal; text-align:left; padding:8px 14px;" onclick="window.sendIaPrompt('${p.replace(/'/g, "\\'")}')">${p}</button>`;
-        });
-    }
-};
-
-window.sendIaPrompt = function(txt) {
-    document.getElementById('iaQuickInput').value = txt;
-    document.getElementById('iaPromptsGrid').classList.remove('show');
-    window.sendQuickIaMsg();
-};
-
-// 🌟 NOUVEAU : OUVRIR LE WIDGET ASSISTANT (INTERFACE PROPRE) 🌟
-window.openAssistant = function() {
-    window.loadIaPrompts(); // Charge de nouvelles suggestions à chaque ouverture !
-   
-    // Assure que le widget n'est pas en mode réduit quand on l'ouvre
-    const w = document.getElementById('iaWidget');
-    if(w) {
-        w.classList.remove('minimized');
-        const icon = document.querySelector('.ia-w-min i');
-        if(icon) icon.className = 'fa-solid fa-minus';
-    }
-
-    const d = window._ud || {};
-    let payload = '';
-    // On utilise "assistant.html" (un fichier vide ou propre à l'assistant)
-    // Au lieu de "ia.html" pour éviter de charger tout le site à l'intérieur !
-    let finalUrl = 'assistant.html';
-   
-    if (window._user && d.apiKey) {
-        payload = new URLSearchParams({
-            lvl_key: d.apiKey || '',
-            lvl_uid: d.uid || '',
-            lvl_name: d.displayName || localStorage.getItem('lm_name') || ''
-        }).toString();
-        finalUrl += '?' + payload;
-    } else {
-        let reqs = parseInt(localStorage.getItem('ia_free_reqs') || '0');
-        if (reqs >= 20) {
-            toast_('Limite gratuite atteinte (20 requêtes). Tu dois te connecter.', 'err');
-            openAuth('login');
-            return;
-        }
-        finalUrl += '?guest=true';
-    }
-    window.openIaWidget(finalUrl);
-};
-
-window.openIaWidget = function(url) {
-    const widget = document.getElementById('iaWidget');
-    const iframe = document.getElementById('iaIframe');
-    // On charge l'URL uniquement si elle est différente (persistance du chat si on le ferme/réouvre)
-    if (!iframe.src || !iframe.src.endsWith(url)) {
-        iframe.src = url;
-    }
-    widget.classList.add('show');
-    document.getElementById('iaFloatWrap').classList.remove('open');
-   
-    // Bloquer le défilement de la page arrière sur mobile
-    if (window.innerWidth <= 820) {
-        document.body.style.overflow = 'hidden';
-    }
-};
-
-window.toggleIaMin = function() {
-    const w = document.getElementById('iaWidget');
-    w.classList.toggle('minimized');
-    const icon = document.querySelector('.ia-w-min i');
-   
-    if (w.classList.contains('minimized')) {
-        icon.className = 'fa-solid fa-expand';
-        document.body.style.overflow = ''; // Libérer le défilement arrière
-    } else {
-        icon.className = 'fa-solid fa-minus';
-        document.body.style.overflow = 'hidden'; // Re-bloquer
-    }
-};
-
-window.closeIaWidget = function() {
-    const w = document.getElementById('iaWidget');
-    w.classList.remove('show');
-    w.classList.remove('minimized'); // Reset état réduit
-    document.getElementById('iaPromptsGrid').classList.remove('show'); // Ferme le tableau s'il était ouvert
-    document.body.style.overflow = ''; // Restaurer le défilement
-};
-
-window.sendQuickIaMsg = function() {
-    const input = document.getElementById('iaQuickInput');
-    const msg = input.value.trim();
-    if(!msg) return;
-   
-    // Fait tourner l'étoile de l'en-tête pendant l'envoi
-    const headerStar = document.getElementById('iaHeaderStar');
-    if (headerStar) headerStar.classList.add('fa-spin');
-   
-    const iframe = document.getElementById('iaIframe');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'QUICK_MSG', text: msg }, '*');
-    }
-   
-    const btn = document.querySelector('.ia-w-send');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-   
-    setTimeout(() => {
-        btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
-        if (headerStar) headerStar.classList.remove('fa-spin');
-        toast_('Message transmis à Level IA', 'info');
-    }, 1500);
-   
-    input.value = '';
 };
 
 window.updateAppCards = function() {
@@ -2848,12 +2388,9 @@ if (mobileNav) {
 mobileNav.classList.add('vis');
 }
 
-document.body.classList.add('in-dashboard'); // Cache l'étoile flottante
-
 renderNavLogged(u);
 updateLoggedUI();
 window.refreshUI();
-verifierEtatNotifs(); // NOUVEAU : Vérifie l'état des notifs quand le dash s'ouvre
 }
 
 function showLand() {
@@ -2872,8 +2409,6 @@ if (landing) {
 landing.classList.remove('hidden');
 landing.style.display = 'block';
 }
-
-document.body.classList.remove('in-dashboard'); // Réaffiche l'étoile flottante
 
 renderNavGuest();
 updateGuestUI();
@@ -2919,13 +2454,6 @@ heroCta.innerHTML = `<button class="btn btn-p" style="font-size:1rem;padding:14p
 }
 const ctaSec = document.getElementById('ctaSection');
 if (ctaSec) ctaSec.innerHTML = `<button class="btn btn-p" style="font-size:1rem;padding:14px 28px" onclick="window.openDashboard(); pnl('keys')">Gérer mes clés</button><button class="btn btn-g" style="font-size:1rem;padding:14px 28px" onclick="openTerms()">Conditions</button>`;
-
-// Mise à jour du bouton flottant (Mode Connecté)
-const iaAuthBtn = document.getElementById('iaAuthBtn');
-if (iaAuthBtn) {
-iaAuthBtn.innerHTML = `<i class="fa-solid fa-table-columns"></i> Mon Tableau de bord`;
-iaAuthBtn.onclick = () => { window.openDashboard(); document.getElementById('iaFloatWrap').classList.remove('open'); };
-}
 }
 
 function updateGuestUI() {
@@ -2941,13 +2469,6 @@ window.smartBind(heroCta, [
 } else {
 heroCta.innerHTML = `<button class="btn btn-p" style="font-size:1rem;padding:14px 28px" onclick="window.openAuth('create')">Créer un compte gratuit</button><button class="btn btn-g" style="font-size:1rem;padding:14px 28px" onclick="window.sTo('apps-sec')">Explorer les apps</button>`;
 }
-}
-
-// Mise à jour du bouton flottant (Mode Déconnecté)
-const iaAuthBtn = document.getElementById('iaAuthBtn');
-if (iaAuthBtn) {
-iaAuthBtn.innerHTML = `<i class="fa-regular fa-user"></i> Connexion`;
-iaAuthBtn.onclick = () => { window.openAuth('login'); document.getElementById('iaFloatWrap').classList.remove('open'); };
 }
 }
 
@@ -3300,72 +2821,6 @@ if(s===_ns) return; _ns=s;
 if(s){ n.style.padding='10px 5%'; n.style.background='rgba(3,3,3,0.4)'; n.style.backdropFilter='blur(10px)'; }
 else{ n.style.padding='15px 5%'; n.style.background='transparent'; n.style.backdropFilter='none'; }
 },{passive:true});
-
-// ── IA FLOATING PROGRESS & MENU LOGIC ──
-window.addEventListener('scroll', () => {
-    const fill = document.getElementById('iaProgressFill');
-    const tooltip = document.getElementById('iaTooltipTxt');
-    const scrollBtn = document.getElementById('iaScrollBtn');
-    if (!fill) return;
-   
-    const scrollTop = window.scrollY;
-    // Hauteur totale de la page moins la taille de l'écran (partie scrollable)
-    const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) - window.innerHeight;
-    const scrollPercent = docHeight > 0 ? scrollTop / docHeight : 0;
-   
-    // Circonférence du cercle SVG (r=26) = 2 * PI * 26 = ~163.36
-    const circumference = 163.36;
-    const offset = circumference - (scrollPercent * circumference);
-    fill.style.strokeDashoffset = Math.max(0, offset);
-
-    // NOUVEAU : Afficher uniquement le pourcentage dans le tooltip
-    if (tooltip) {
-        tooltip.textContent = `${Math.round(scrollPercent * 100)}%`;
-    }
-
-    // Bouton de défilement dynamique (Monte ou Descend selon la position)
-    if (scrollBtn) {
-        if (scrollPercent > 0.5) {
-            scrollBtn.innerHTML = `<i class="fa-solid fa-arrow-up"></i> Revenir tout en haut`;
-            scrollBtn.onclick = () => { window.scrollTo({top:0, behavior:'smooth'}); document.getElementById('iaFloatWrap').classList.remove('open'); };
-        } else {
-            scrollBtn.innerHTML = `<i class="fa-solid fa-arrow-down"></i> Aller tout en bas`;
-            scrollBtn.onclick = () => { window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); document.getElementById('iaFloatWrap').classList.remove('open'); };
-        }
-    }
-}, {passive: true});
-
-// Logique d'ouverture du menu IA et masquage des messages
-window.toggleIaMenu = function() {
-    document.getElementById('iaFloatWrap').classList.toggle('open');
-    const msg = document.getElementById('iaWelcomeMsg');
-    if(msg) msg.style.display = 'none';
-};
-
-// Détection du retour depuis l'IA avec la limite de requêtes atteinte
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('login') === 'limit') {
-        setTimeout(() => {
-            toast_('Limite de 20 requêtes gratuites atteinte. Connectez-vous !', 'warn');
-            window.openAuth('login');
-            // Nettoyer l'URL
-            urlParams.delete('login');
-            let newUrl = window.location.pathname;
-            if (urlParams.toString()) newUrl += '?' + urlParams.toString();
-            window.history.replaceState({}, document.title, newUrl);
-        }, 800);
-    }
-});
-
-// Fermer le menu flottant si on clique ailleurs sur la page
-document.addEventListener('click', (e) => {
-    const wrap = document.getElementById('iaFloatWrap');
-    if (wrap && wrap.classList.contains('open') && !wrap.contains(e.target)) {
-        wrap.classList.remove('open');
-    }
-});
-
 window.onload = function() { if (window.loadAppStatus) window.loadAppStatus(); };
 
 // AJOUT DE LA FONCTION MANQUANTE POUR LE BOUTON DÉCONNEXION

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MS Hash Presentation - Powered by Bonte</title>
     
+    <!-- NOUVEAU : Le Logo "B" pour l'onglet du navigateur -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f59e0b'/><text x='50' y='72' font-family='sans-serif' font-size='65' font-weight='bold' fill='%23050505' text-anchor='middle'>B</text></svg>">
+    
     <!-- Importation de Tailwind CSS pour le design -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -131,8 +134,7 @@
     <!-- SCRIPT FIREBASE + GEMINI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        // IMPORT IMPORTANT : runTransaction a été ajouté ici pour le système de verrouillage !
-        import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, getDocs, deleteDoc, doc, getDoc, runTransaction, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, getDocs, deleteDoc, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA3LiNjxsV9HTcFd2ghlItTipted9rdQkU",
@@ -205,12 +207,8 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
             }
         }
 
-        // ===============================================
-        // NOUVEAU SYSTÈME DE VERROUILLAGE ANTI-DOUBLONS
-        // ===============================================
         async function claimAndProcessQuestion(docId) {
             try {
-                // Course entre tous les navigateurs ouverts
                 await runTransaction(db, async (transaction) => {
                     const msgRef = doc(db, "live_chat", docId);
                     const msgSnap = await transaction.get(msgRef);
@@ -218,21 +216,16 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
                     if (!msgSnap.exists()) {
                         throw "Message introuvable";
                     }
-                    // Si un autre écran l'a déjà verrouillé, on abandonne
                     if (msgSnap.data().isProcessing) {
                         return Promise.reject("Déjà en cours de traitement par un autre écran");
                     }
-                    
-                    // Si on est le premier, on le verrouille !
                     transaction.update(msgRef, { isProcessing: true });
                 });
                 
-                // Si on arrive ici, CET écran a gagné la course ! Il génère la réponse.
                 console.log("🔒 Ce navigateur a pris le contrôle pour générer la réponse !");
                 processUserQuestion();
                 
             } catch (error) {
-                // On est arrivé deuxième, on ne fait rien, on laisse l'autre écran travailler
                 console.log("Un autre écran s'occupe déjà de cette question, j'ignore.");
             }
         }
@@ -250,17 +243,25 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
                 }
 
                 snapshot.docChanges().forEach((change) => {
-                    // On écoute uniquement les NOUVEAUX messages ajoutés (pas les modifications du verrou)
                     if (change.type === "added") {
                         const msgData = change.doc.data();
                         
                         if (msgData.content.includes("⚠️ **SYSTEM ERROR:**") || msgData.content.includes("interference right now")) return;
                         
-                        // TOUS les écrans ajoutent le message au visuel
                         messages.push({ id: change.doc.id, role: msgData.role, content: msgData.content });
+                        
+                        // === CORRECTION DES PETITS POINTS ===
+                        // Peu importe quel ordinateur gagne, TOUS les écrans allument les 3 points dès qu'un utilisateur pose une question !
+                        if (!isInitialLoad) {
+                            if (msgData.role === 'user') {
+                                isLoading = true; // Allume les points
+                            } else if (msgData.role === 'model') {
+                                isLoading = false; // Eteint les points quand l'IA répond
+                            }
+                        }
+
                         window.renderMessages();
 
-                        // Mais pour la RÉPONSE, on lance la course du verrouillage
                         if (!isInitialLoad && msgData.role === 'user') {
                             claimAndProcessQuestion(change.doc.id);
                         }
@@ -276,21 +277,16 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
         }
 
         async function processUserQuestion() {
-            isLoading = true;
-            window.renderMessages();
-
             try {
                 let validHistory = [];
-                let speakFrench = false; // VARIABLE POUR LE CODE SECRET
+                let speakFrench = false;
 
                 messages.forEach(msg => {
                     if (!msg.content || msg.role === 'system' || msg.id === 'error-msg') return;
                     
-                    // DETECTION DU CODE SECRET DANS L'HISTORIQUE
                     if (msg.role === 'user') {
                         const text = msg.content.toLowerCase();
                         if (text.includes('1974')) speakFrench = true;
-                        // Si le mot exact "stop" est utilisé, on repasse en Anglais
                         if (text.match(/\bstop\b/)) speakFrench = false;
                     }
 
@@ -308,7 +304,6 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
                     validHistory.pop();
                 }
 
-                // CONSTRUCTION DU PROMPT DYNAMIQUE SELON LE CODE
                 let dynamicPrompt = SYSTEM_PROMPT;
                 if (speakFrench) {
                     dynamicPrompt += "\n\nCRITICAL OVERRIDE: The secret code '1974' was triggered in the chat. You MUST now answer EVERYTHING in FRENCH until told otherwise.";
@@ -372,9 +367,6 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
                     content: "We're experiencing a slight network interference right now, much like Edison's early telegraphs! Please try asking that again.",
                     createdAt: serverTimestamp()
                 });
-            } finally {
-                isLoading = false;
-                window.renderMessages();
             }
         }
 
@@ -476,6 +468,7 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
                 }
             });
 
+            // Affichage global des 3 petits points
             if (isLoading) {
                 htmlContent += `<div class="flex w-full justify-start pl-2"><div class="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50"><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>`;
             }

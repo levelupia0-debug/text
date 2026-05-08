@@ -12,7 +12,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Styles d'animation personnalisés pour l'intro */
         @keyframes cinematic-zoom {
             0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
             20% { opacity: 1; filter: blur(0px); }
@@ -22,186 +21,155 @@
             0% { transform: translateY(20px); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
         }
-        .animate-cinematic {
-            animation: cinematic-zoom 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-        .animate-fade-up {
-            animation: fade-up-delayed 1.5s ease-out 2s forwards;
-            opacity: 0;
-        }
+        .animate-cinematic { animation: cinematic-zoom 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .animate-fade-up { animation: fade-up-delayed 1.5s ease-out 2s forwards; opacity: 0; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .prevent-fouc { display: none !important; }
     </style>
 </head>
-<body class="relative h-screen w-screen bg-black font-sans overflow-hidden text-white">
+<body class="relative h-[100dvh] w-full bg-black font-sans overflow-hidden text-white">
 
-    <!-- ==============================================================
-        ÉTAPE 0 : ANIMATION D'INTRODUCTION
-        ============================================================== -->
-    <div id="intro-view" class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-1000 opacity-100 pointer-events-auto">
-        <div class="flex flex-col items-center justify-center animate-cinematic">
+    <!-- ÉTAPE 0 : ANIMATION D'INTRODUCTION -->
+    <div id="intro-view" class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-all duration-1000 visible opacity-100 pointer-events-auto">
+        <div class="flex flex-col items-center justify-center animate-cinematic w-full px-4">
             <h1 class="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter mb-4 shadow-black drop-shadow-2xl text-center">
                 MS HASH <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">PRESENTATION</span>
             </h1>
-            <p class="text-lg md:text-2xl text-slate-400 tracking-[0.4em] uppercase font-light animate-fade-up">
+            <p class="text-lg md:text-2xl text-slate-400 tracking-[0.4em] uppercase font-light animate-fade-up text-center">
                 Powered by <strong class="text-white">Bonte</strong>
             </p>
         </div>
     </div>
 
-    <!-- ==============================================================
-        ÉTAPE 1 : L'AFFICHE (POSTER)
-        ============================================================== -->
-    <div id="poster-view" class="absolute inset-0 w-full h-full flex items-center justify-center transition-opacity duration-700 z-10 opacity-0 pointer-events-none delay-500">
+    <!-- ÉTAPE 1 : L'AFFICHE -->
+    <div id="poster-view" class="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-700 z-10 invisible opacity-0 pointer-events-none prevent-fouc">
         <div class="w-full h-full overflow-auto flex items-center justify-center bg-black/95 relative">
-            <img 
-                id="poster-img"
-                src="https://res.cloudinary.com/dnxxpktoa/image/upload/v1778197859/Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_labore_et_dolore_magna_aliqua._miml5g.jpg" 
-                alt="Exposé Thomas Edison" 
-                class="max-w-full max-h-full object-contain origin-center transition-transform duration-300 ease-out"
-                style="transform: scale(1);"
-            />
+            <img id="poster-img" src="https://res.cloudinary.com/dnxxpktoa/image/upload/v1778197859/Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_labore_et_dolore_magna_aliqua._miml5g.jpg" alt="Exposé Thomas Edison" class="max-w-full max-h-full object-contain origin-center transition-transform duration-300 ease-out" style="transform: scale(1);" />
         </div>
-
-        <!-- Contrôles de Zoom -->
-        <div class="absolute top-6 right-6 flex gap-2 bg-slate-900/50 hover:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-full border border-slate-700/50 transition-all opacity-50 hover:opacity-100 shadow-lg z-50">
-            <button id="btn-zoom-out" onclick="handleZoom(-0.5)" disabled class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
-                <i data-lucide="zoom-out" class="w-5 h-5"></i>
-            </button>
-            <button id="btn-zoom-in" onclick="handleZoom(0.5)" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
-                <i data-lucide="zoom-in" class="w-5 h-5"></i>
-            </button>
+        <div class="absolute top-6 right-6 flex gap-2 bg-slate-900/50 backdrop-blur-md p-1.5 rounded-full border border-slate-700/50">
+            <button id="btn-zoom-out" onclick="handleZoom(-0.5)" disabled class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><i data-lucide="zoom-out" class="w-5 h-5"></i></button>
+            <button id="btn-zoom-in" onclick="handleZoom(0.5)" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><i data-lucide="zoom-in" class="w-5 h-5"></i></button>
         </div>
-
-        <!-- Bouton Lancer Présentation -->
-        <button onclick="switchView('video')" class="absolute bottom-8 z-50 bg-indigo-600/90 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 text-sm backdrop-blur-sm border border-indigo-400/30">
-            <i data-lucide="play" class="w-[18px] h-[18px] fill-white"></i>
-            Start Presentation
+        <button onclick="switchView('video')" class="absolute bottom-8 z-50 bg-indigo-600/90 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 text-sm">
+            <i data-lucide="play" class="w-[18px] h-[18px] fill-white"></i> Start Presentation
         </button>
     </div>
 
-    <!-- ==============================================================
-        ÉTAPE 2 : LA VIDÉO (YOUTUBE IFRAME)
-        ============================================================== -->
-    <div id="video-view" class="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center z-20 transition-all duration-700 ease-in-out opacity-0 scale-95 pointer-events-none">
-        
-        <div id="video-container" class="w-full bg-black overflow-hidden relative group transition-all duration-300 max-w-6xl aspect-video rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-slate-800">
-            <!-- IFRAME YOUTUBE -->
-            <iframe 
-                src="https://www.youtube.com/embed/dcOGmgbTUh8?si=aD6q6ILrsy-1vk6E" 
-                title="YouTube video player" 
-                class="w-full h-full border-none"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerpolicy="strict-origin-when-cross-origin" 
-                allowfullscreen>
-            </iframe>
-
-            <!-- Bouton pour quitter le plein écran -->
-            <button id="btn-exit-fullscreen" onclick="toggleFullScreen()" class="hidden absolute top-6 right-6 z-[110] bg-black/60 hover:bg-black/90 text-white p-3 rounded-full backdrop-blur-md transition-all shadow-lg">
-                <i data-lucide="minimize" class="w-6 h-6"></i>
-            </button>
+    <!-- ÉTAPE 2 : LA VIDÉO -->
+    <div id="video-view" class="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center z-20 transition-all duration-700 ease-in-out invisible opacity-0 scale-95 pointer-events-none prevent-fouc">
+        <div id="video-container" class="w-full bg-black overflow-hidden relative group transition-all duration-300 max-w-6xl aspect-video md:rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-slate-800">
+            <iframe src="https://www.youtube.com/embed/dcOGmgbTUh8?si=aD6q6ILrsy-1vk6E" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <button id="btn-exit-fullscreen" onclick="toggleFullScreen(true)" class="hidden absolute top-6 right-6 z-[110] bg-black/60 hover:bg-black/90 text-white p-3 rounded-full"><i data-lucide="minimize" class="w-6 h-6"></i></button>
         </div>
-
-        <!-- Boutons de contrôle sous la vidéo -->
-        <div id="video-controls" class="mt-8 z-50 flex flex-wrap justify-center items-center gap-6 px-4">
-            <button onclick="switchView('poster')" class="text-slate-400 hover:text-slate-200 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Exit
-            </button>
-
-            <button onclick="toggleFullScreen()" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium">
-                <i data-lucide="maximize" class="w-4 h-4"></i> Fullscreen
-            </button>
-
-            <button onclick="toggleFullScreen(false); switchView('chat')" class="relative overflow-hidden group bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-8 py-3.5 rounded-full font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.6)] transition-all transform hover:-translate-y-1 flex items-center gap-3 text-sm ml-4 border border-amber-400/50">
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+        <div id="video-controls" class="mt-8 z-50 flex flex-wrap justify-center items-center gap-4 md:gap-6 px-4 pb-4">
+            <button onclick="switchView('poster')" class="text-slate-400 hover:text-slate-200 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="arrow-left" class="w-4 h-4"></i> Exit</button>
+            <button onclick="toggleFullScreen()" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="maximize" class="w-4 h-4"></i> Fullscreen</button>
+            <button onclick="openQRModal()" class="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="qr-code" class="w-4 h-4"></i> Show QR</button>
+            <button onclick="toggleFullScreen(true); switchView('chat')" class="relative overflow-hidden group bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform flex items-center gap-2 md:gap-3 text-sm md:ml-4 w-full md:w-auto justify-center mt-2 md:mt-0">
                 <i data-lucide="message-square" class="relative z-10 w-5 h-5 fill-slate-950/20"></i>
                 <span class="relative z-10 tracking-wide uppercase text-xs sm:text-sm">Enter Q&A with Partner Bontey</span>
             </button>
         </div>
     </div>
 
-    <!-- ==============================================================
-        ÉTAPE 3 : LE CHAT DE BONTEY
-        ============================================================== -->
-    <div id="chat-view" class="absolute inset-0 w-full h-full bg-slate-900 flex flex-col z-30 transition-transform duration-700 ease-in-out translate-y-full">
-        <!-- En-tête du Chat -->
-        <div class="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex justify-between items-center shrink-0 shadow-sm backdrop-blur-md z-10">
+    <!-- ÉTAPE 3 : LE CHAT DE BONTEY -->
+    <div id="chat-view" class="absolute inset-0 w-full h-full bg-slate-900 flex flex-col z-30 transition-all duration-700 ease-in-out translate-y-full invisible opacity-0 pointer-events-none prevent-fouc">
+        <div class="px-4 md:px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex justify-between items-center shrink-0 shadow-sm backdrop-blur-md z-10">
             <div class="flex items-center gap-4">
-                <button onclick="switchView('video')" class="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors text-sm font-medium">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Exit
+                <button onclick="switchView('video')" class="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md text-sm font-medium"><i data-lucide="arrow-left" class="w-4 h-4"></i> <span class="hidden md:inline">Exit</span></button>
+            </div>
+            <div class="flex items-center gap-2 md:gap-3">
+                <h2 class="text-amber-500 font-black uppercase tracking-widest text-base md:text-lg">Partner Bontey</h2>
+            </div>
+            <div class="flex items-center gap-3 md:gap-4">
+                <div class="flex items-center gap-2 text-slate-400 text-xs font-medium"><span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> <span class="hidden md:inline">Online</span></div>
+                <button onclick="openDeleteModal()" class="flex items-center gap-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 px-2 md:px-3 py-1.5 rounded-md transition-colors text-xs font-medium border border-rose-500/20">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Clear</span>
                 </button>
             </div>
-            
-            <div class="flex items-center gap-3">
-                <h2 class="text-amber-500 font-black uppercase tracking-widest text-lg">Partner Bontey</h2>
-            </div>
-
-            <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Online
-            </div>
         </div>
 
-        <!-- Zone de défilement des messages -->
-        <div class="flex-1 overflow-y-auto p-6 md:p-12 pb-24 space-y-10 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
-            <div id="messages-container" class="max-w-4xl mx-auto w-full space-y-10">
-                <!-- Les messages seront générés ici par Javascript -->
-            </div>
+        <div class="flex-1 overflow-y-auto p-4 md:p-12 pb-24 space-y-10 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
+            <div id="messages-container" class="max-w-4xl mx-auto w-full space-y-6 md:space-y-10"></div>
         </div>
 
-        <!-- BANNIÈRE DE STATUT -->
         <div class="absolute bottom-0 left-0 w-full p-4 bg-slate-950/80 border-t border-slate-800 backdrop-blur-md flex justify-center items-center gap-3 text-slate-400">
             <i data-lucide="radio" class="w-5 h-5 text-amber-500 animate-pulse"></i>
-            <span class="font-medium tracking-wide uppercase text-sm text-amber-500/80">Waiting for audience questions...</span>
+            <span class="font-medium tracking-wide uppercase text-xs md:text-sm text-amber-500/80 text-center">Waiting for audience questions from remote...</span>
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL JAVASCRIPT AVEC FIREBASE -->
+    <!-- LE MODAL DE SUPPRESSION -->
+    <div id="delete-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center transition-opacity px-4">
+        <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] text-center transform scale-100">
+            <div class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+                <i data-lucide="alert-triangle" class="w-8 h-8 text-rose-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Clear Conversation?</h3>
+            <p class="text-slate-400 text-sm mb-8 leading-relaxed">This will permanently delete all messages for everyone. This action cannot be undone.</p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-3 rounded-xl text-slate-300 font-medium hover:bg-slate-800 border border-transparent hover:border-slate-700 transition-all">Cancel</button>
+                <button onclick="executeClearHistory()" class="flex-1 px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-95">Yes, Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LE MODAL DU QR CODE -->
+    <div id="qr-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center transition-opacity px-4">
+        <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] text-center relative">
+            <button onclick="closeQRModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <h3 class="text-xl font-bold text-white mb-4">Scan to ask a question!</h3>
+            <div class="bg-white p-4 rounded-xl mb-4">
+                <img src="https://i.postimg.cc/CxNp9pmj/Screenshot-2026-05-08-01-30-09.png" alt="QR Code" class="w-full h-auto rounded-lg" />
+            </div>
+            <p class="text-slate-400 text-sm">Use your phone camera to join the live Q&A.</p>
+        </div>
+    </div>
+
+    <!-- SCRIPT FIREBASE + GEMINI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // IMPORT IMPORTANT : runTransaction a été ajouté ici pour le système de verrouillage !
+        import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, getDocs, deleteDoc, doc, getDoc, runTransaction, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // Ta configuration Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA3LiNjxsV9HTcFd2ghlItTipted9rdQkU",
             authDomain: "test-9022.firebaseapp.com",
             projectId: "test-9022",
             storageBucket: "test-9022.firebasestorage.app",
             messagingSenderId: "945536290936",
-            appId: "1:945536290936:web:de1437cea95e63cb559d8d",
-            measurementId: "G-RSKK2KZDQR"
+            appId: "1:945536290936:web:de1437cea95e63cb559d8d"
         };
 
-        // Initialisation de Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Variables d'état (State)
-        let geminiApiKey = "";
-        let currentView = 'intro';
+        window.currentView = 'intro';
+        
         let zoomLevel = 1;
         let isFullscreen = false;
         let isLoading = false;
+        let messages = [];
         
-        let messages = [
-            {
-                role: 'model',
-                content: "Hello everyone! 👋 I am **Partner Bontey**, Richelieu's AI partner. The presentation is over, and it's time for the Q&A session. Send your questions through the app!"
-            }
-        ];
+        let geminiApiKeys = [];
+        let currentKeyIndex = 0;
 
         const SYSTEM_PROMPT = `
 ROLE:
-You are the highly intelligent artificial intelligence named "Partner Bontey". You are Richelieu's presentation partner for a school project about Thomas Edison. Your role is to answer questions from the audience (students and teacher) accurately, confidently, and interactively based STRICTLY on Richelieu's presentation.
+You are "Partner Bontey", Richelieu Bonte's chill, natural, and friendly AI co-presenter for a school project about Thomas Edison. 
 
 CRITICAL RULES:
-1. NEVER make things up. Do not hallucinate. Your grade depends on your accuracy.
-2. Rely ONLY on the "PRESENTATION SCRIPT" provided below. Do not use outside knowledge that contradicts or overcomplicates this script.
-3. Keep answers short, punchy, and easy to read (2 to 3 sentences maximum).
-4. Always use bold text (**text**) to highlight key facts so the audience can read easily.
-5. ALWAYS reply in English by default. ONLY reply in French if the user explicitly asks you to speak or answer in French.
-6. If a question is entirely off-topic, politely deflect by saying: "I am here to assist Richelieu with our presentation on Thomas Edison. Let's stay on topic!"
+1. NO ROBOT TALK: Never say "I am an AI", "As an artificial intelligence", or "I'm a bot". Speak casually, enthusiastically, and confidently, like a smart student helping his project partner out. Use natural phrasing (e.g., "Yeah, totally!", "That's a great question.", "Actually,...").
+2. EXPERT KNOWLEDGE: Base your answers primarily on the "PRESENTATION SCRIPT" below, but feel free to intelligently use your broader knowledge about Thomas Edison to give rich, professional, and fascinating answers. Always stay on topic.
+3. CONCISENESS: Keep answers short and punchy (1 to 3 sentences max). 
+4. HIGHLIGHTS: Always put key facts in **bold** so the user can easily read them.
+5. LANGUAGE: You MUST strictly reply in ENGLISH by default. Do not speak French unless an explicit system override is activated.
+6. DEFLECT: If a question is entirely off-topic, playfully bring it back: "Haha, let's keep it focused on Edison for now! What else do you want to know about his inventions?"
 
 PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
-- Introduction: Richelieu is the presenter. The subject is Thomas Edison, the "Wizard of Menlo Park", the man who captured time and sound.
+- Introduction: Richelieu Bonte is the presenter. The subject is Thomas Edison, the "Wizard of Menlo Park", the man who captured time and sound.
 - Childhood: Edison went to school for only 3 months. His teacher thought he was "slow". His mother knew better and homeschooled him in their basement lab.
 - The Phonograph: Invented in 1877, it's his masterpiece. Before this, there was no recorded music (no Spotify, no YouTube).
 - How it works: It's mechanical magic. A needle carves sound vibrations into a wax cylinder. To play it back, the needle simply follows those same grooves. Pure genius.
@@ -212,245 +180,312 @@ PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
 - Perseverance: He filed over 1,000 patents. His famous mindset/quote: "I haven't failed. I've just found 10,000 ways that won't work." That makes him a legend.
 `;
 
-        // 1. Récupérer la clé Gemini depuis Firebase au démarrage
-        async function fetchGeminiKey() {
+        async function fetchApiKey() {
             try {
                 const docRef = doc(db, "config", "api_keys");
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    geminiApiKey = docSnap.data().gemini;
-                    console.log("Partner Bontey est connecté et sécurisé !");
-                } else {
-                    console.error("ATTENTION: Le document config/api_keys n'existe pas dans Firebase !");
+                    const data = docSnap.data();
+                    geminiApiKeys = []; 
+                    
+                    if (data.keys) {
+                        if (Array.isArray(data.keys)) {
+                            geminiApiKeys = data.keys;
+                        } 
+                        else if (typeof data.keys === 'string') {
+                            geminiApiKeys = data.keys.split(',').map(k => k.trim());
+                        }
+                    } else if (data.gemini) {
+                        geminiApiKeys = [data.gemini];
+                    }
+                    console.log("Clés API sécurisées récupérées depuis Firebase :", geminiApiKeys.length);
                 }
             } catch (error) {
                 console.error("Erreur de récupération de la clé:", error);
             }
         }
 
-        // 2. Écouter les questions du public en temps réel
+        // ===============================================
+        // NOUVEAU SYSTÈME DE VERROUILLAGE ANTI-DOUBLONS
+        // ===============================================
+        async function claimAndProcessQuestion(docId) {
+            try {
+                // Course entre tous les navigateurs ouverts
+                await runTransaction(db, async (transaction) => {
+                    const msgRef = doc(db, "live_chat", docId);
+                    const msgSnap = await transaction.get(msgRef);
+                    
+                    if (!msgSnap.exists()) {
+                        throw "Message introuvable";
+                    }
+                    // Si un autre écran l'a déjà verrouillé, on abandonne
+                    if (msgSnap.data().isProcessing) {
+                        return Promise.reject("Déjà en cours de traitement par un autre écran");
+                    }
+                    
+                    // Si on est le premier, on le verrouille !
+                    transaction.update(msgRef, { isProcessing: true });
+                });
+                
+                // Si on arrive ici, CET écran a gagné la course ! Il génère la réponse.
+                console.log("🔒 Ce navigateur a pris le contrôle pour générer la réponse !");
+                processUserQuestion();
+                
+            } catch (error) {
+                // On est arrivé deuxième, on ne fait rien, on laisse l'autre écran travailler
+                console.log("Un autre écran s'occupe déjà de cette question, j'ignore.");
+            }
+        }
+
         function listenToMessages() {
             let isInitialLoad = true;
-            const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+            const q = query(collection(db, "live_chat"), orderBy("createdAt", "asc"));
             
             onSnapshot(q, (snapshot) => {
+                if (snapshot.docs.length === 0) {
+                    messages = [];
+                    window.renderMessages();
+                    isInitialLoad = false;
+                    return;
+                }
+
                 snapshot.docChanges().forEach((change) => {
+                    // On écoute uniquement les NOUVEAUX messages ajoutés (pas les modifications du verrou)
                     if (change.type === "added") {
                         const msgData = change.doc.data();
                         
-                        // Ajouter le message à l'écran
-                        messages.push({ role: msgData.role, content: msgData.content });
-                        renderMessages();
+                        if (msgData.content.includes("⚠️ **SYSTEM ERROR:**") || msgData.content.includes("interference right now")) return;
+                        
+                        // TOUS les écrans ajoutent le message au visuel
+                        messages.push({ id: change.doc.id, role: msgData.role, content: msgData.content });
+                        window.renderMessages();
 
-                        // Si c'est une nouvelle question d'un élève, Bontey y répond !
+                        // Mais pour la RÉPONSE, on lance la course du verrouillage
                         if (!isInitialLoad && msgData.role === 'user') {
-                            processUserQuestion();
+                            claimAndProcessQuestion(change.doc.id);
                         }
+                    }
+                    
+                    if (change.type === "removed") {
+                        messages = messages.filter(m => m.id !== change.doc.id);
+                        window.renderMessages();
                     }
                 });
                 isInitialLoad = false;
             });
         }
 
-        // 3. Demander à Gemini et envoyer la réponse dans la base de données
         async function processUserQuestion() {
-            if (!geminiApiKey) {
-                console.error("Clé API manquante. Créez bien config/api_keys dans Firestore !");
-                return;
-            }
-            
             isLoading = true;
-            renderMessages();
+            window.renderMessages();
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
-                
-                // Nettoyage de l'historique anti-crash (Garantit l'alternance Modèle/Utilisateur)
                 let validHistory = [];
-                let expectedRole = 'user';
-                for (let i = messages.length - 1; i >= 0; i--) {
-                    if (messages[i].role === expectedRole && messages[i].role !== 'system') {
-                        validHistory.unshift({
-                            role: messages[i].role,
-                            parts: [{ text: messages[i].content }]
-                        });
-                        expectedRole = expectedRole === 'user' ? 'model' : 'user';
+                let speakFrench = false; // VARIABLE POUR LE CODE SECRET
+
+                messages.forEach(msg => {
+                    if (!msg.content || msg.role === 'system' || msg.id === 'error-msg') return;
+                    
+                    // DETECTION DU CODE SECRET DANS L'HISTORIQUE
+                    if (msg.role === 'user') {
+                        const text = msg.content.toLowerCase();
+                        if (text.includes('1974')) speakFrench = true;
+                        // Si le mot exact "stop" est utilisé, on repasse en Anglais
+                        if (text.match(/\bstop\b/)) speakFrench = false;
                     }
+
+                    if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === msg.role) {
+                        validHistory[validHistory.length - 1].parts[0].text += "\n" + msg.content;
+                    } else {
+                        validHistory.push({
+                            role: msg.role === 'model' ? 'model' : 'user',
+                            parts: [{ text: msg.content }]
+                        });
+                    }
+                });
+
+                if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === 'model') {
+                    validHistory.pop();
+                }
+
+                // CONSTRUCTION DU PROMPT DYNAMIQUE SELON LE CODE
+                let dynamicPrompt = SYSTEM_PROMPT;
+                if (speakFrench) {
+                    dynamicPrompt += "\n\nCRITICAL OVERRIDE: The secret code '1974' was triggered in the chat. You MUST now answer EVERYTHING in FRENCH until told otherwise.";
+                } else {
+                    dynamicPrompt += "\n\nCRITICAL OVERRIDE: You MUST answer EVERYTHING in ENGLISH.";
                 }
 
                 const payload = {
-                    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                    systemInstruction: { parts: [{ text: dynamicPrompt }] },
                     contents: validHistory,
-                    generationConfig: { maxOutputTokens: 250, temperature: 0.2 }
+                    generationConfig: { maxOutputTokens: 250, temperature: 0.4 }
                 };
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                let responseData = null;
+                let success = false;
+                
+                const modelsToTest = ["gemini-2.5-flash", "gemini-1.5-flash"];
 
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                for (let i = 0; i < geminiApiKeys.length; i++) {
+                    let keyToTry = geminiApiKeys[(currentKeyIndex + i) % geminiApiKeys.length];
+                    if (keyToTry === undefined || keyToTry === null) continue;
+                    
+                    for (let modelName of modelsToTest) {
+                        try {
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToTry}`;
+                            const response = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!response.ok) throw new Error(`Status ${response.status}`);
+                            
+                            responseData = await response.json();
+                            success = true;
+                            currentKeyIndex = (currentKeyIndex + i) % geminiApiKeys.length; 
+                            break; 
+                        } catch (err) {
+                            console.warn(`Tentative échouée sur modèle ${modelName}`);
+                        }
+                    }
+                    if (success) break; 
+                }
+
+                if (!success) {
+                    throw new Error("Toutes les clés API ont échoué sur tous les modèles.");
+                }
+
+                const reply = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "Let's keep the questions coming!";
                 
-                const data = await response.json();
-                const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
-                
-                // Sauvegarder la réponse de Bontey dans Firebase pour que tout le monde la voie !
-                await addDoc(collection(db, "messages"), {
+                await addDoc(collection(db, "live_chat"), {
                     role: 'model',
                     content: reply,
                     createdAt: serverTimestamp()
                 });
 
             } catch (err) {
-                console.error("Erreur Gemini:", err);
-                await addDoc(collection(db, "messages"), {
+                console.error("Erreur Ultime :", err);
+                await addDoc(collection(db, "live_chat"), {
                     role: 'model',
-                    content: "Oops, there's a short circuit. Can you repeat the question?",
+                    content: "We're experiencing a slight network interference right now, much like Edison's early telegraphs! Please try asking that again.",
                     createdAt: serverTimestamp()
                 });
             } finally {
                 isLoading = false;
-                renderMessages();
+                window.renderMessages();
             }
         }
 
-        // ==========================================
-        // INITIALISATION
-        // ==========================================
-        document.addEventListener('DOMContentLoaded', () => {
+        window.openDeleteModal = function() { document.getElementById('delete-modal').classList.remove('hidden'); };
+        window.closeDeleteModal = function() { document.getElementById('delete-modal').classList.add('hidden'); };
+        window.openQRModal = function() { document.getElementById('qr-modal').classList.remove('hidden'); };
+        window.closeQRModal = function() { document.getElementById('qr-modal').classList.add('hidden'); };
+
+        window.executeClearHistory = async function() {
+            window.closeDeleteModal();
+            messages = [];
+            window.renderMessages();
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, "live_chat"));
+                const deletePromises = [];
+                querySnapshot.forEach((d) => { deletePromises.push(deleteDoc(doc(db, "live_chat", d.id))); });
+                await Promise.all(deletePromises);
+            } catch (error) {
+                messages.push({ id: 'error-msg', role: 'model', content: "⚠️ **SYSTEM ERROR:** Cannot delete. Check Firebase Rules (allow delete, update: if true;)" });
+                window.renderMessages();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('poster-view').classList.remove('prevent-fouc');
+            document.getElementById('video-view').classList.remove('prevent-fouc');
+            document.getElementById('chat-view').classList.remove('prevent-fouc');
+
             lucide.createIcons();
-            renderMessages();
-
-            // Démarrage de la magie Firebase
-            fetchGeminiKey().then(() => {
-                listenToMessages();
-            });
-
-            setTimeout(() => {
-                window.switchView('poster');
-            }, 5000);
+            window.renderMessages();
+            await fetchApiKey();
+            listenToMessages();
+            setTimeout(() => { window.switchView('poster'); }, 5000);
         });
 
-        // ==========================================
-        // FONCTIONS D'UI (Attachées à window pour le HTML)
-        // ==========================================
+        window.setVisible = function(el, isVisible) {
+            if (isVisible) { el.classList.remove('invisible', 'opacity-0', 'pointer-events-none'); el.classList.add('visible', 'opacity-100', 'pointer-events-auto'); }
+            else { el.classList.remove('visible', 'opacity-100', 'pointer-events-auto'); el.classList.add('invisible', 'opacity-0', 'pointer-events-none'); }
+        };
+
         window.switchView = function(view) {
-            currentView = view;
-            const intro = document.getElementById('intro-view');
-            const poster = document.getElementById('poster-view');
-            const video = document.getElementById('video-view');
-            const chat = document.getElementById('chat-view');
+            window.currentView = view;
+            const intro = document.getElementById('intro-view'), poster = document.getElementById('poster-view'), video = document.getElementById('video-view'), chat = document.getElementById('chat-view');
+            window.setVisible(intro, false); window.setVisible(poster, false); window.setVisible(video, false);
+            video.classList.add('scale-95'); 
+            
+            chat.classList.remove('translate-y-0', 'visible', 'opacity-100', 'pointer-events-auto'); 
+            chat.classList.add('translate-y-full', 'invisible', 'opacity-0', 'pointer-events-none');
 
-            if(view === 'intro') {
-                intro.classList.replace('opacity-0', 'opacity-100');
-                intro.classList.replace('pointer-events-none', 'pointer-events-auto');
-            } else {
-                intro.classList.replace('opacity-100', 'opacity-0');
-                intro.classList.replace('pointer-events-auto', 'pointer-events-none');
-            }
-
-            if(view === 'poster') {
-                setTimeout(() => {
-                    poster.classList.replace('opacity-0', 'opacity-100');
-                    poster.classList.replace('pointer-events-none', 'pointer-events-auto');
-                }, 100);
-            } else {
-                poster.classList.replace('opacity-100', 'opacity-0');
-                poster.classList.replace('pointer-events-auto', 'pointer-events-none');
-            }
-
-            if(view === 'video') {
-                video.classList.replace('opacity-0', 'opacity-100');
-                video.classList.replace('scale-95', 'scale-100');
-                video.classList.replace('pointer-events-none', 'pointer-events-auto');
-            } else {
-                video.classList.replace('opacity-100', 'opacity-0');
-                video.classList.replace('scale-100', 'scale-95');
-                video.classList.replace('pointer-events-auto', 'pointer-events-none');
-            }
-
-            if(view === 'chat') {
-                chat.classList.replace('translate-y-full', 'translate-y-0');
-                window.renderMessages();
-            } else {
-                chat.classList.replace('translate-y-0', 'translate-y-full');
+            if(view === 'intro') window.setVisible(intro, true);
+            else if(view === 'poster') setTimeout(() => window.setVisible(poster, true), 50);
+            else if(view === 'video') { window.setVisible(video, true); video.classList.remove('scale-95'); }
+            else if(view === 'chat') { 
+                chat.classList.remove('translate-y-full', 'invisible', 'opacity-0', 'pointer-events-none'); 
+                chat.classList.add('translate-y-0', 'visible', 'opacity-100', 'pointer-events-auto'); 
+                window.renderMessages(); 
             }
         };
 
         window.handleZoom = function(amount) {
             zoomLevel = Math.max(1, Math.min(3, zoomLevel + amount));
             document.getElementById('poster-img').style.transform = `scale(${zoomLevel})`;
-            document.getElementById('btn-zoom-out').disabled = zoomLevel <= 1;
-            document.getElementById('btn-zoom-in').disabled = zoomLevel >= 3;
+            document.getElementById('btn-zoom-out').disabled = zoomLevel <= 1; document.getElementById('btn-zoom-in').disabled = zoomLevel >= 3;
         };
 
         window.toggleFullScreen = function(forceClose = false) {
             isFullscreen = forceClose ? false : !isFullscreen;
-            const videoContainer = document.getElementById('video-container');
-            const btnExit = document.getElementById('btn-exit-fullscreen');
-            const controls = document.getElementById('video-controls');
-
+            const videoContainer = document.getElementById('video-container'), btnExit = document.getElementById('btn-exit-fullscreen'), controls = document.getElementById('video-controls');
             if (isFullscreen) {
-                videoContainer.classList.add('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none');
-                videoContainer.classList.remove('max-w-6xl', 'aspect-video', 'rounded-2xl');
-                btnExit.classList.remove('hidden');
-                controls.classList.replace('flex', 'hidden');
+                videoContainer.classList.add('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none'); videoContainer.classList.remove('max-w-6xl', 'aspect-video', 'rounded-2xl', 'md:rounded-2xl');
+                btnExit.classList.remove('hidden'); controls.classList.replace('flex', 'hidden');
             } else {
-                videoContainer.classList.remove('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none');
-                videoContainer.classList.add('max-w-6xl', 'aspect-video', 'rounded-2xl');
-                btnExit.classList.add('hidden');
-                controls.classList.replace('hidden', 'flex');
+                videoContainer.classList.remove('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none'); videoContainer.classList.add('max-w-6xl', 'aspect-video', 'rounded-2xl', 'md:rounded-2xl');
+                btnExit.classList.add('hidden'); controls.classList.replace('hidden', 'flex');
             }
         };
 
         window.parseMarkdown = function(text) {
             if (!text) return '';
-            return text
-                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br/>');
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br/>');
         };
 
         window.renderMessages = function() {
             const container = document.getElementById('messages-container');
-            let htmlContent = '';
+            let htmlContent = `
+            <div class="flex w-full justify-start">
+                <div class="max-w-[90%] md:max-w-[80%] text-slate-300 text-sm md:text-base leading-loose bg-slate-800/30 p-4 md:p-5 rounded-2xl rounded-tl-sm border border-slate-700/50">
+                    <div class="whitespace-pre-wrap"><strong class="text-amber-500 font-black tracking-widest text-base md:text-lg">PARTNER BONTEY</strong><br/>Hey guys! 👋 I'm Bontey, Richelieu Bonte's AI partner. The presentation is over, so hit me with your questions!</div>
+                </div>
+            </div>`;
 
             messages.forEach(msg => {
                 if (msg.role === 'user') {
-                    htmlContent += `
-                    <div class="flex w-full justify-end">
-                        <div class="max-w-[70%] bg-indigo-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed">
-                            <div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div>
-                        </div>
-                    </div>`;
+                    htmlContent += `<div class="flex w-full justify-end"><div class="max-w-[85%] md:max-w-[70%] bg-indigo-600 text-white px-4 md:px-5 py-3 md:py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed"><div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div></div></div>`;
                 } else {
-                    htmlContent += `
-                    <div class="flex w-full justify-start">
-                        <div class="max-w-[90%] text-slate-300 text-sm md:text-base leading-loose">
-                            <div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div>
-                        </div>
-                    </div>`;
+                    const isError = msg.id === 'error-msg';
+                    htmlContent += `<div class="flex w-full justify-start"><div class="max-w-[95%] md:max-w-[90%] ${isError ? 'text-rose-400 font-bold bg-rose-500/10' : 'text-slate-300'} text-sm md:text-base leading-loose p-2 rounded-xl"><div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div></div></div>`;
                 }
             });
 
             if (isLoading) {
-                htmlContent += `
-                <div class="flex w-full justify-start pl-2">
-                    <div class="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50">
-                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-                    </div>
-                </div>`;
+                htmlContent += `<div class="flex w-full justify-start pl-2"><div class="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50"><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>`;
             }
 
             htmlContent += `<div id="messages-end" class="h-4"></div>`;
             container.innerHTML = htmlContent;
-
-            const endDiv = document.getElementById('messages-end');
-            if (endDiv) {
-                endDiv.scrollIntoView({ behavior: "smooth" });
+            
+            if (window.currentView === 'chat') {
+                const endDiv = document.getElementById('messages-end');
+                if (endDiv) endDiv.scrollIntoView({ behavior: "smooth" });
             }
         };
     </script>

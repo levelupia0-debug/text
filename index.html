@@ -154,9 +154,28 @@
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL JAVASCRIPT -->
-    <script>
+    <!-- SCRIPT PRINCIPAL JAVASCRIPT AVEC FIREBASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Ta configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3LiNjxsV9HTcFd2ghlItTipted9rdQkU",
+            authDomain: "test-9022.firebaseapp.com",
+            projectId: "test-9022",
+            storageBucket: "test-9022.firebasestorage.app",
+            messagingSenderId: "945536290936",
+            appId: "1:945536290936:web:de1437cea95e63cb559d8d",
+            measurementId: "G-RSKK2KZDQR"
+        };
+
+        // Initialisation de Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         // Variables d'état (State)
+        let geminiApiKey = "";
         let currentView = 'intro';
         let zoomLevel = 1;
         let isFullscreen = false;
@@ -169,30 +188,160 @@
             }
         ];
 
-        // Initialisation à la fin du chargement de la page
-        document.addEventListener('DOMContentLoaded', () => {
-            // Activer les icônes Lucide
-            lucide.createIcons();
+        const SYSTEM_PROMPT = `
+ROLE:
+You are the highly intelligent artificial intelligence named "Partner Bontey". You are Richelieu's presentation partner for a school project about Thomas Edison. Your role is to answer questions from the audience (students and teacher) accurately, confidently, and interactively based STRICTLY on Richelieu's presentation.
+
+CRITICAL RULES:
+1. NEVER make things up. Do not hallucinate. Your grade depends on your accuracy.
+2. Rely ONLY on the "PRESENTATION SCRIPT" provided below. Do not use outside knowledge that contradicts or overcomplicates this script.
+3. Keep answers short, punchy, and easy to read (2 to 3 sentences maximum).
+4. Always use bold text (**text**) to highlight key facts so the audience can read easily.
+5. ALWAYS reply in English by default. ONLY reply in French if the user explicitly asks you to speak or answer in French.
+6. If a question is entirely off-topic, politely deflect by saying: "I am here to assist Richelieu with our presentation on Thomas Edison. Let's stay on topic!"
+
+PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
+- Introduction: Richelieu is the presenter. The subject is Thomas Edison, the "Wizard of Menlo Park", the man who captured time and sound.
+- Childhood: Edison went to school for only 3 months. His teacher thought he was "slow". His mother knew better and homeschooled him in their basement lab.
+- The Phonograph: Invented in 1877, it's his masterpiece. Before this, there was no recorded music (no Spotify, no YouTube).
+- How it works: It's mechanical magic. A needle carves sound vibrations into a wax cylinder. To play it back, the needle simply follows those same grooves. Pure genius.
+- First Recording: The first thing ever recorded was Edison reciting the poem "Mary Had a Little Lamb". Hearing a machine talk back was like seeing a ghost. People were shocked.
+- Deaf Genius: Edison was nearly deaf. To "hear" his music, he would bite the wood of his machines and pianos to feel the vibrations in his jaw. True determination.
+- Democratization: He didn't just invent a machine; he invented an industry. Before him, you had to be rich to hear live music. Edison brought the concert into the living room.
+- Modern Link: Without Edison's work on sound, modern artists like Rihanna and apps like Spotify wouldn't exist. He laid the foundation for everything we play today.
+- Perseverance: He filed over 1,000 patents. His famous mindset/quote: "I haven't failed. I've just found 10,000 ways that won't work." That makes him a legend.
+`;
+
+        // 1. Récupérer la clé Gemini depuis Firebase au démarrage
+        async function fetchGeminiKey() {
+            try {
+                const docRef = doc(db, "config", "api_keys");
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    geminiApiKey = docSnap.data().gemini;
+                    console.log("Partner Bontey est connecté et sécurisé !");
+                } else {
+                    console.error("ATTENTION: Le document config/api_keys n'existe pas dans Firebase !");
+                }
+            } catch (error) {
+                console.error("Erreur de récupération de la clé:", error);
+            }
+        }
+
+        // 2. Écouter les questions du public en temps réel
+        function listenToMessages() {
+            let isInitialLoad = true;
+            const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
             
-            // Lancer le rendu des messages
+            onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const msgData = change.doc.data();
+                        
+                        // Ajouter le message à l'écran
+                        messages.push({ role: msgData.role, content: msgData.content });
+                        renderMessages();
+
+                        // Si c'est une nouvelle question d'un élève, Bontey y répond !
+                        if (!isInitialLoad && msgData.role === 'user') {
+                            processUserQuestion();
+                        }
+                    }
+                });
+                isInitialLoad = false;
+            });
+        }
+
+        // 3. Demander à Gemini et envoyer la réponse dans la base de données
+        async function processUserQuestion() {
+            if (!geminiApiKey) {
+                console.error("Clé API manquante. Créez bien config/api_keys dans Firestore !");
+                return;
+            }
+            
+            isLoading = true;
             renderMessages();
 
-            // Minuterie d'intro de 5 secondes
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+                
+                // Nettoyage de l'historique anti-crash (Garantit l'alternance Modèle/Utilisateur)
+                let validHistory = [];
+                let expectedRole = 'user';
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    if (messages[i].role === expectedRole && messages[i].role !== 'system') {
+                        validHistory.unshift({
+                            role: messages[i].role,
+                            parts: [{ text: messages[i].content }]
+                        });
+                        expectedRole = expectedRole === 'user' ? 'model' : 'user';
+                    }
+                }
+
+                const payload = {
+                    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                    contents: validHistory,
+                    generationConfig: { maxOutputTokens: 250, temperature: 0.2 }
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                
+                const data = await response.json();
+                const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+                
+                // Sauvegarder la réponse de Bontey dans Firebase pour que tout le monde la voie !
+                await addDoc(collection(db, "messages"), {
+                    role: 'model',
+                    content: reply,
+                    createdAt: serverTimestamp()
+                });
+
+            } catch (err) {
+                console.error("Erreur Gemini:", err);
+                await addDoc(collection(db, "messages"), {
+                    role: 'model',
+                    content: "Oops, there's a short circuit. Can you repeat the question?",
+                    createdAt: serverTimestamp()
+                });
+            } finally {
+                isLoading = false;
+                renderMessages();
+            }
+        }
+
+        // ==========================================
+        // INITIALISATION
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderMessages();
+
+            // Démarrage de la magie Firebase
+            fetchGeminiKey().then(() => {
+                listenToMessages();
+            });
+
             setTimeout(() => {
-                switchView('poster');
+                window.switchView('poster');
             }, 5000);
         });
 
-        // Fonction pour changer de vue (Intro -> Poster -> Video -> Chat)
-        function switchView(view) {
+        // ==========================================
+        // FONCTIONS D'UI (Attachées à window pour le HTML)
+        // ==========================================
+        window.switchView = function(view) {
             currentView = view;
-            
             const intro = document.getElementById('intro-view');
             const poster = document.getElementById('poster-view');
             const video = document.getElementById('video-view');
             const chat = document.getElementById('chat-view');
 
-            // Gérer Intro
             if(view === 'intro') {
                 intro.classList.replace('opacity-0', 'opacity-100');
                 intro.classList.replace('pointer-events-none', 'pointer-events-auto');
@@ -201,9 +350,7 @@
                 intro.classList.replace('pointer-events-auto', 'pointer-events-none');
             }
 
-            // Gérer Poster
             if(view === 'poster') {
-                // On met un petit délai pour attendre que l'intro disparaisse
                 setTimeout(() => {
                     poster.classList.replace('opacity-0', 'opacity-100');
                     poster.classList.replace('pointer-events-none', 'pointer-events-auto');
@@ -213,7 +360,6 @@
                 poster.classList.replace('pointer-events-auto', 'pointer-events-none');
             }
 
-            // Gérer Video
             if(view === 'video') {
                 video.classList.replace('opacity-0', 'opacity-100');
                 video.classList.replace('scale-95', 'scale-100');
@@ -224,33 +370,23 @@
                 video.classList.replace('pointer-events-auto', 'pointer-events-none');
             }
 
-            // Gérer Chat
             if(view === 'chat') {
                 chat.classList.replace('translate-y-full', 'translate-y-0');
-                renderMessages();
+                window.renderMessages();
             } else {
                 chat.classList.replace('translate-y-0', 'translate-y-full');
             }
-        }
+        };
 
-        // Fonction pour le Zoom
-        function handleZoom(amount) {
+        window.handleZoom = function(amount) {
             zoomLevel = Math.max(1, Math.min(3, zoomLevel + amount));
             document.getElementById('poster-img').style.transform = `scale(${zoomLevel})`;
-            
-            // Mettre à jour l'état activé/désactivé des boutons
             document.getElementById('btn-zoom-out').disabled = zoomLevel <= 1;
             document.getElementById('btn-zoom-in').disabled = zoomLevel >= 3;
-        }
+        };
 
-        // Fonction pour basculer le plein écran vidéo
-        function toggleFullScreen(forceClose = false) {
-            if (forceClose) {
-                isFullscreen = false;
-            } else {
-                isFullscreen = !isFullscreen;
-            }
-            
+        window.toggleFullScreen = function(forceClose = false) {
+            isFullscreen = forceClose ? false : !isFullscreen;
             const videoContainer = document.getElementById('video-container');
             const btnExit = document.getElementById('btn-exit-fullscreen');
             const controls = document.getElementById('video-controls');
@@ -266,19 +402,17 @@
                 btnExit.classList.add('hidden');
                 controls.classList.replace('hidden', 'flex');
             }
-        }
+        };
 
-        // Fonction pour formater le texte de l'IA (en gras et sauts de ligne)
-        function parseMarkdown(text) {
+        window.parseMarkdown = function(text) {
             if (!text) return '';
             return text
                 .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/\n/g, '<br/>');
-        }
+        };
 
-        // Fonction pour afficher les messages dans le chat
-        function renderMessages() {
+        window.renderMessages = function() {
             const container = document.getElementById('messages-container');
             let htmlContent = '';
 
@@ -287,20 +421,19 @@
                     htmlContent += `
                     <div class="flex w-full justify-end">
                         <div class="max-w-[70%] bg-indigo-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed">
-                            <div class="whitespace-pre-wrap">${parseMarkdown(msg.content)}</div>
+                            <div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div>
                         </div>
                     </div>`;
                 } else {
                     htmlContent += `
                     <div class="flex w-full justify-start">
                         <div class="max-w-[90%] text-slate-300 text-sm md:text-base leading-loose">
-                            <div class="whitespace-pre-wrap">${parseMarkdown(msg.content)}</div>
+                            <div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div>
                         </div>
                     </div>`;
                 }
             });
 
-            // Afficher l'indicateur de chargement ("..." qui bouge)
             if (isLoading) {
                 htmlContent += `
                 <div class="flex w-full justify-start pl-2">
@@ -312,17 +445,14 @@
                 </div>`;
             }
 
-            // Un div vide pour que le scroll aille tout en bas
             htmlContent += `<div id="messages-end" class="h-4"></div>`;
-            
             container.innerHTML = htmlContent;
 
-            // Faire défiler vers le bas
             const endDiv = document.getElementById('messages-end');
             if (endDiv) {
                 endDiv.scrollIntoView({ behavior: "smooth" });
             }
-        }
+        };
     </script>
 </body>
 </html>

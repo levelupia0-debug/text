@@ -1,334 +1,328 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { User, Loader2, ZoomIn, ZoomOut, ArrowLeft, Play, MessageSquare, Maximize, Minimize, Radio } from 'lucide-react';
-
-// Clé API (À terme, on la récupérera depuis la base de données)
-const apiKey = "";
-
-const SYSTEM_PROMPT = `
-ROLE:
-You are the highly intelligent artificial intelligence named "Partner Bontey". You are Richelieu's presentation partner for a school project about Thomas Edison. Your role is to answer questions from the audience (students and teacher) accurately, confidently, and interactively based STRICTLY on Richelieu's presentation.
-
-CRITICAL RULES:
-1. NEVER make things up. Do not hallucinate. Your grade depends on your accuracy.
-2. Rely ONLY on the "PRESENTATION SCRIPT" provided below. Do not use outside knowledge that contradicts or overcomplicates this script.
-3. Keep answers short, punchy, and easy to read (2 to 3 sentences maximum).
-4. Always use bold text (**text**) to highlight key facts so the audience can read easily.
-5. ALWAYS reply in English by default. ONLY reply in French if the user explicitly asks you to speak or answer in French.
-6. If a question is entirely off-topic, politely deflect by saying: "I am here to assist Richelieu with our presentation on Thomas Edison. Let's stay on topic!"
-
-PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
-- Introduction: Richelieu is the presenter. The subject is Thomas Edison, the "Wizard of Menlo Park", the man who captured time and sound.
-- Childhood: Edison went to school for only 3 months. His teacher thought he was "slow". His mother knew better and homeschooled him in their basement lab.
-- The Phonograph: Invented in 1877, it's his masterpiece. Before this, there was no recorded music (no Spotify, no YouTube).
-- How it works: It's mechanical magic. A needle carves sound vibrations into a wax cylinder. To play it back, the needle simply follows those same grooves. Pure genius.
-- First Recording: The first thing ever recorded was Edison reciting the poem "Mary Had a Little Lamb". Hearing a machine talk back was like seeing a ghost. People were shocked.
-- Deaf Genius: Edison was nearly deaf. To "hear" his music, he would bite the wood of his machines and pianos to feel the vibrations in his jaw. True determination.
-- Democratization: He didn't just invent a machine; he invented an industry. Before him, you had to be rich to hear live music. Edison brought the concert into the living room.
-- Modern Link: Without Edison's work on sound, modern artists like Rihanna and apps like Spotify wouldn't exist. He laid the foundation for everything we play today.
-- Perseverance: He filed over 1,000 patents. His famous mindset/quote: "I haven't failed. I've just found 10,000 ways that won't work." That makes him a legend.
-`;
-
-const parseMarkdown = (text) => {
-  if (!text) return { __html: '' };
-  let html = text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br/>');
-  return { __html: html };
-};
-
-export default function App() {
-  // Ces messages viendront bientôt de ta base de données Firebase
-  const [messages, setMessages] = useState([
-    {
-      role: 'model',
-      content: "Hello everyone! 👋 I am **Partner Bontey**, Richelieu's AI partner. The presentation is over, and it's time for the Q&A session. Send your questions through the app!"
-    }
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [currentView, setCurrentView] = useState('intro'); 
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  const messagesEndRef = useRef(null);
-  const videoRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    if (currentView === 'chat') {
-      scrollToBottom();
-    }
-  }, [messages, currentView]);
-
-  useEffect(() => {
-    if (currentView === 'intro') {
-      const timer = setTimeout(() => {
-        setCurrentView('poster');
-      }, 5000); 
-      return () => clearTimeout(timer);
-    }
-  }, [currentView]);
-
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.5, 3));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.5, 1));
-
-  const toggleFullScreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
-
-  // Cette fonction sera utilisée plus tard quand on connectera Firebase
-  const callGeminiAPI = async (userText) => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MS Hash Presentation - Powered by Bonte</title>
     
-    const history = messages.filter(m => m.role !== 'system').map(m => ({
-      role: m.role,
-      parts: [{ text: m.content }]
-    }));
+    <!-- Importation de Tailwind CSS pour le design -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    history.push({ role: 'user', parts: [{ text: userText }] });
+    <!-- Importation de Lucide pour les icônes -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    const payload = {
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: history,
-      generationConfig: {
-        maxOutputTokens: 250,
-        temperature: 0.2 // Température très basse (0.2) = l'IA est ultra-précise, factuelle et ne délire pas.
-      }
-    };
-
-    const delays = [1000, 2000, 4000, 8000, 16000];
-    let lastError = null;
-
-    for (let i = 0; i < 5; i++) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        
-        const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
-      } catch (err) {
-        lastError = err;
-        if (i < 4) await new Promise(r => setTimeout(r, delays[i]));
-      }
-    }
-    return "Oops, there's a short circuit. Can you repeat the question?";
-  };
-
-  return (
-    <div className="relative h-screen w-screen bg-black font-sans overflow-hidden">
-      
-      {/* Styles d'animation personnalisés pour l'intro */}
-      <style dangerouslySetInnerHTML={{__html: `
+    <style>
+        /* Styles d'animation personnalisés pour l'intro */
         @keyframes cinematic-zoom {
-          0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
-          20% { opacity: 1; filter: blur(0px); }
-          100% { transform: scale(1.1); opacity: 1; }
+            0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
+            20% { opacity: 1; filter: blur(0px); }
+            100% { transform: scale(1.1); opacity: 1; }
         }
         @keyframes fade-up-delayed {
-          0% { transform: translateY(20px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
         .animate-cinematic {
-          animation: cinematic-zoom 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation: cinematic-zoom 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
         .animate-fade-up {
-          animation: fade-up-delayed 1.5s ease-out 2s forwards;
-          opacity: 0;
+            animation: fade-up-delayed 1.5s ease-out 2s forwards;
+            opacity: 0;
         }
-      `}} />
+    </style>
+</head>
+<body class="relative h-screen w-screen bg-black font-sans overflow-hidden text-white">
 
-      {/* ==============================================================
-          ÉTAPE 0 : ANIMATION D'INTRODUCTION
-          ============================================================== */}
-      <div 
-        className={`absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-1000 ${
-          currentView === 'intro' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="flex flex-col items-center justify-center animate-cinematic">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter mb-4 shadow-black drop-shadow-2xl text-center">
-            MS HASH <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">PRESENTATION</span>
-          </h1>
-          <p className="text-lg md:text-2xl text-slate-400 tracking-[0.4em] uppercase font-light animate-fade-up">
-            Powered by <strong className="text-white">Bonte</strong>
-          </p>
+    <!-- ==============================================================
+        ÉTAPE 0 : ANIMATION D'INTRODUCTION
+        ============================================================== -->
+    <div id="intro-view" class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-opacity duration-1000 opacity-100 pointer-events-auto">
+        <div class="flex flex-col items-center justify-center animate-cinematic">
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter mb-4 shadow-black drop-shadow-2xl text-center">
+                MS HASH <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">PRESENTATION</span>
+            </h1>
+            <p class="text-lg md:text-2xl text-slate-400 tracking-[0.4em] uppercase font-light animate-fade-up">
+                Powered by <strong class="text-white">Bonte</strong>
+            </p>
         </div>
-      </div>
-
-      {/* ==============================================================
-          ÉTAPE 1 : L'AFFICHE (POSTER)
-          ============================================================== */}
-      <div 
-        className={`absolute inset-0 w-full h-full flex items-center justify-center transition-opacity duration-700 z-10 ${
-          currentView === 'poster' ? 'opacity-100 pointer-events-auto delay-500' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="w-full h-full overflow-auto flex items-center justify-center bg-black/95 relative">
-          <img 
-            src="https://res.cloudinary.com/dnxxpktoa/image/upload/v1778197859/Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_labore_et_dolore_magna_aliqua._miml5g.jpg" 
-            alt="Exposé Thomas Edison" 
-            style={{ 
-              transform: `scale(${zoomLevel})`,
-              transition: 'transform 0.3s ease-out'
-            }}
-            className="max-w-full max-h-full object-contain origin-center"
-          />
-        </div>
-
-        <div className="absolute top-6 right-6 flex gap-2 bg-slate-900/50 hover:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-full border border-slate-700/50 transition-all opacity-50 hover:opacity-100 shadow-lg z-50">
-          <button onClick={handleZoomOut} disabled={zoomLevel <= 1} className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><ZoomOut size={20} /></button>
-          <button onClick={handleZoomIn} disabled={zoomLevel >= 3} className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><ZoomIn size={20} /></button>
-        </div>
-
-        <button 
-          onClick={() => setCurrentView('video')}
-          className="absolute bottom-8 z-50 bg-indigo-600/90 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 text-sm backdrop-blur-sm border border-indigo-400/30"
-        >
-          <Play size={18} className="fill-white" />
-          Start Presentation
-        </button>
-      </div>
-
-      {/* ==============================================================
-          ÉTAPE 2 : LA VIDÉO (LECTEUR HTML5)
-          ============================================================== */}
-      <div 
-        className={`absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center z-20 transition-all duration-700 ease-in-out ${
-          currentView === 'video' ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-        }`}
-      >
-        <div ref={videoRef} className={`w-full bg-black overflow-hidden relative group transition-all duration-300 ${isFullscreen ? 'absolute inset-0 z-[100] h-full rounded-none' : 'max-w-6xl aspect-video rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-slate-800'}`}>
-          <iframe 
-            src="https://www.youtube.com/embed/dcOGmgbTUh8?si=aD6q6ILrsy-1vk6E" 
-            title="YouTube video player" 
-            className="w-full h-full border-none"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            referrerPolicy="strict-origin-when-cross-origin" 
-            allowFullScreen
-          ></iframe>
-
-          {isFullscreen && (
-            <button 
-              onClick={toggleFullScreen}
-              className="absolute top-6 right-6 z-[110] bg-black/60 hover:bg-black/90 text-white p-3 rounded-full backdrop-blur-md transition-all shadow-lg"
-            >
-              <Minimize size={24} />
-            </button>
-          )}
-        </div>
-
-        {/* Boutons de contrôle sous la vidéo : Design "PRO" */}
-        <div className={`mt-8 z-50 flex flex-wrap justify-center items-center gap-6 px-4 ${isFullscreen ? 'hidden' : 'flex'}`}>
-          <button 
-            onClick={() => setCurrentView('poster')}
-            className="text-slate-400 hover:text-slate-200 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium"
-          >
-            <ArrowLeft size={16} /> Exit
-          </button>
-
-          <button 
-            onClick={toggleFullScreen}
-            className="text-indigo-400 hover:text-indigo-300 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium"
-          >
-            <Maximize size={16} /> Fullscreen
-          </button>
-
-          {/* BOUTON ULTRA PRO POUR LE Q&A */}
-          <button 
-            onClick={() => {
-              setIsFullscreen(false);
-              setCurrentView('chat');
-            }}
-            className="relative overflow-hidden group bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-8 py-3.5 rounded-full font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.6)] transition-all transform hover:-translate-y-1 flex items-center gap-3 text-sm ml-4 border border-amber-400/50"
-          >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
-            <MessageSquare size={20} className="relative z-10 fill-slate-950/20" />
-            <span className="relative z-10 tracking-wide uppercase text-xs sm:text-sm">Enter Q&A with Partner Bontey</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ==============================================================
-          ÉTAPE 3 : LE CHAT DE BONTEY (Mode "Écran Géant", sans clavier)
-          ============================================================== */}
-      <div 
-        className={`absolute inset-0 w-full h-full bg-slate-900 flex flex-col z-30 transition-transform duration-700 ease-in-out ${
-          currentView === 'chat' ? 'translate-y-0' : 'translate-y-full'
-        }`}
-      >
-        {/* En-tête du Chat */}
-        <div className="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex justify-between items-center shrink-0 shadow-sm backdrop-blur-md z-10">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setCurrentView('video')}
-              className="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors text-sm font-medium"
-            >
-              <ArrowLeft size={16} />
-              Exit
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <h2 className="text-amber-500 font-black uppercase tracking-widest text-lg">Partner Bontey</h2>
-          </div>
-
-          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             Online
-          </div>
-        </div>
-
-        {/* Zone de défilement des messages */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-24 space-y-10 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
-          <div className="max-w-4xl mx-auto w-full space-y-10">
-            {messages.map((msg, idx) => (
-              <div 
-                key={idx} 
-                className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {msg.role === 'user' ? (
-                  <div className="max-w-[70%] bg-indigo-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed">
-                    <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={parseMarkdown(msg.content)} />
-                  </div>
-                ) : (
-                  <div className="max-w-[90%] text-slate-300 text-sm md:text-base leading-loose">
-                    <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={parseMarkdown(msg.content)} />
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {/* Animation des 3 points (Typing indicator) */}
-            {isLoading && (
-              <div className="flex w-full justify-start pl-2">
-                <div className="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} className="h-4" />
-          </div>
-        </div>
-
-        {/* BANNIÈRE DE STATUT (Remplace le champ de texte) */}
-        <div className="absolute bottom-0 left-0 w-full p-4 bg-slate-950/80 border-t border-slate-800 backdrop-blur-md flex justify-center items-center gap-3 text-slate-400">
-          <Radio size={20} className="text-amber-500 animate-pulse" />
-          <span className="font-medium tracking-wide uppercase text-sm text-amber-500/80">Waiting for audience questions...</span>
-        </div>
-
-      </div>
-
     </div>
-  );
-}
+
+    <!-- ==============================================================
+        ÉTAPE 1 : L'AFFICHE (POSTER)
+        ============================================================== -->
+    <div id="poster-view" class="absolute inset-0 w-full h-full flex items-center justify-center transition-opacity duration-700 z-10 opacity-0 pointer-events-none delay-500">
+        <div class="w-full h-full overflow-auto flex items-center justify-center bg-black/95 relative">
+            <img 
+                id="poster-img"
+                src="https://res.cloudinary.com/dnxxpktoa/image/upload/v1778197859/Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_labore_et_dolore_magna_aliqua._miml5g.jpg" 
+                alt="Exposé Thomas Edison" 
+                class="max-w-full max-h-full object-contain origin-center transition-transform duration-300 ease-out"
+                style="transform: scale(1);"
+            />
+        </div>
+
+        <!-- Contrôles de Zoom -->
+        <div class="absolute top-6 right-6 flex gap-2 bg-slate-900/50 hover:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-full border border-slate-700/50 transition-all opacity-50 hover:opacity-100 shadow-lg z-50">
+            <button id="btn-zoom-out" onclick="handleZoom(-0.5)" disabled class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
+                <i data-lucide="zoom-out" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-zoom-in" onclick="handleZoom(0.5)" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed">
+                <i data-lucide="zoom-in" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Bouton Lancer Présentation -->
+        <button onclick="switchView('video')" class="absolute bottom-8 z-50 bg-indigo-600/90 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 text-sm backdrop-blur-sm border border-indigo-400/30">
+            <i data-lucide="play" class="w-[18px] h-[18px] fill-white"></i>
+            Start Presentation
+        </button>
+    </div>
+
+    <!-- ==============================================================
+        ÉTAPE 2 : LA VIDÉO (YOUTUBE IFRAME)
+        ============================================================== -->
+    <div id="video-view" class="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center z-20 transition-all duration-700 ease-in-out opacity-0 scale-95 pointer-events-none">
+        
+        <div id="video-container" class="w-full bg-black overflow-hidden relative group transition-all duration-300 max-w-6xl aspect-video rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-slate-800">
+            <!-- IFRAME YOUTUBE -->
+            <iframe 
+                src="https://www.youtube.com/embed/dcOGmgbTUh8?si=aD6q6ILrsy-1vk6E" 
+                title="YouTube video player" 
+                class="w-full h-full border-none"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                referrerpolicy="strict-origin-when-cross-origin" 
+                allowfullscreen>
+            </iframe>
+
+            <!-- Bouton pour quitter le plein écran -->
+            <button id="btn-exit-fullscreen" onclick="toggleFullScreen()" class="hidden absolute top-6 right-6 z-[110] bg-black/60 hover:bg-black/90 text-white p-3 rounded-full backdrop-blur-md transition-all shadow-lg">
+                <i data-lucide="minimize" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Boutons de contrôle sous la vidéo -->
+        <div id="video-controls" class="mt-8 z-50 flex flex-wrap justify-center items-center gap-6 px-4">
+            <button onclick="switchView('poster')" class="text-slate-400 hover:text-slate-200 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Exit
+            </button>
+
+            <button onclick="toggleFullScreen()" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-2 px-2 py-2 transition-colors text-sm font-medium">
+                <i data-lucide="maximize" class="w-4 h-4"></i> Fullscreen
+            </button>
+
+            <button onclick="toggleFullScreen(false); switchView('chat')" class="relative overflow-hidden group bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-8 py-3.5 rounded-full font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.6)] transition-all transform hover:-translate-y-1 flex items-center gap-3 text-sm ml-4 border border-amber-400/50">
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+                <i data-lucide="message-square" class="relative z-10 w-5 h-5 fill-slate-950/20"></i>
+                <span class="relative z-10 tracking-wide uppercase text-xs sm:text-sm">Enter Q&A with Partner Bontey</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ==============================================================
+        ÉTAPE 3 : LE CHAT DE BONTEY
+        ============================================================== -->
+    <div id="chat-view" class="absolute inset-0 w-full h-full bg-slate-900 flex flex-col z-30 transition-transform duration-700 ease-in-out translate-y-full">
+        <!-- En-tête du Chat -->
+        <div class="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex justify-between items-center shrink-0 shadow-sm backdrop-blur-md z-10">
+            <div class="flex items-center gap-4">
+                <button onclick="switchView('video')" class="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors text-sm font-medium">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Exit
+                </button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <h2 class="text-amber-500 font-black uppercase tracking-widest text-lg">Partner Bontey</h2>
+            </div>
+
+            <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
+                <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Online
+            </div>
+        </div>
+
+        <!-- Zone de défilement des messages -->
+        <div class="flex-1 overflow-y-auto p-6 md:p-12 pb-24 space-y-10 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
+            <div id="messages-container" class="max-w-4xl mx-auto w-full space-y-10">
+                <!-- Les messages seront générés ici par Javascript -->
+            </div>
+        </div>
+
+        <!-- BANNIÈRE DE STATUT -->
+        <div class="absolute bottom-0 left-0 w-full p-4 bg-slate-950/80 border-t border-slate-800 backdrop-blur-md flex justify-center items-center gap-3 text-slate-400">
+            <i data-lucide="radio" class="w-5 h-5 text-amber-500 animate-pulse"></i>
+            <span class="font-medium tracking-wide uppercase text-sm text-amber-500/80">Waiting for audience questions...</span>
+        </div>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL JAVASCRIPT -->
+    <script>
+        // Variables d'état (State)
+        let currentView = 'intro';
+        let zoomLevel = 1;
+        let isFullscreen = false;
+        let isLoading = false;
+        
+        let messages = [
+            {
+                role: 'model',
+                content: "Hello everyone! 👋 I am **Partner Bontey**, Richelieu's AI partner. The presentation is over, and it's time for the Q&A session. Send your questions through the app!"
+            }
+        ];
+
+        // Initialisation à la fin du chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Activer les icônes Lucide
+            lucide.createIcons();
+            
+            // Lancer le rendu des messages
+            renderMessages();
+
+            // Minuterie d'intro de 5 secondes
+            setTimeout(() => {
+                switchView('poster');
+            }, 5000);
+        });
+
+        // Fonction pour changer de vue (Intro -> Poster -> Video -> Chat)
+        function switchView(view) {
+            currentView = view;
+            
+            const intro = document.getElementById('intro-view');
+            const poster = document.getElementById('poster-view');
+            const video = document.getElementById('video-view');
+            const chat = document.getElementById('chat-view');
+
+            // Gérer Intro
+            if(view === 'intro') {
+                intro.classList.replace('opacity-0', 'opacity-100');
+                intro.classList.replace('pointer-events-none', 'pointer-events-auto');
+            } else {
+                intro.classList.replace('opacity-100', 'opacity-0');
+                intro.classList.replace('pointer-events-auto', 'pointer-events-none');
+            }
+
+            // Gérer Poster
+            if(view === 'poster') {
+                // On met un petit délai pour attendre que l'intro disparaisse
+                setTimeout(() => {
+                    poster.classList.replace('opacity-0', 'opacity-100');
+                    poster.classList.replace('pointer-events-none', 'pointer-events-auto');
+                }, 100);
+            } else {
+                poster.classList.replace('opacity-100', 'opacity-0');
+                poster.classList.replace('pointer-events-auto', 'pointer-events-none');
+            }
+
+            // Gérer Video
+            if(view === 'video') {
+                video.classList.replace('opacity-0', 'opacity-100');
+                video.classList.replace('scale-95', 'scale-100');
+                video.classList.replace('pointer-events-none', 'pointer-events-auto');
+            } else {
+                video.classList.replace('opacity-100', 'opacity-0');
+                video.classList.replace('scale-100', 'scale-95');
+                video.classList.replace('pointer-events-auto', 'pointer-events-none');
+            }
+
+            // Gérer Chat
+            if(view === 'chat') {
+                chat.classList.replace('translate-y-full', 'translate-y-0');
+                renderMessages();
+            } else {
+                chat.classList.replace('translate-y-0', 'translate-y-full');
+            }
+        }
+
+        // Fonction pour le Zoom
+        function handleZoom(amount) {
+            zoomLevel = Math.max(1, Math.min(3, zoomLevel + amount));
+            document.getElementById('poster-img').style.transform = `scale(${zoomLevel})`;
+            
+            // Mettre à jour l'état activé/désactivé des boutons
+            document.getElementById('btn-zoom-out').disabled = zoomLevel <= 1;
+            document.getElementById('btn-zoom-in').disabled = zoomLevel >= 3;
+        }
+
+        // Fonction pour basculer le plein écran vidéo
+        function toggleFullScreen(forceClose = false) {
+            if (forceClose) {
+                isFullscreen = false;
+            } else {
+                isFullscreen = !isFullscreen;
+            }
+            
+            const videoContainer = document.getElementById('video-container');
+            const btnExit = document.getElementById('btn-exit-fullscreen');
+            const controls = document.getElementById('video-controls');
+
+            if (isFullscreen) {
+                videoContainer.classList.add('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none');
+                videoContainer.classList.remove('max-w-6xl', 'aspect-video', 'rounded-2xl');
+                btnExit.classList.remove('hidden');
+                controls.classList.replace('flex', 'hidden');
+            } else {
+                videoContainer.classList.remove('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none');
+                videoContainer.classList.add('max-w-6xl', 'aspect-video', 'rounded-2xl');
+                btnExit.classList.add('hidden');
+                controls.classList.replace('hidden', 'flex');
+            }
+        }
+
+        // Fonction pour formater le texte de l'IA (en gras et sauts de ligne)
+        function parseMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br/>');
+        }
+
+        // Fonction pour afficher les messages dans le chat
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            let htmlContent = '';
+
+            messages.forEach(msg => {
+                if (msg.role === 'user') {
+                    htmlContent += `
+                    <div class="flex w-full justify-end">
+                        <div class="max-w-[70%] bg-indigo-600 text-white px-5 py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed">
+                            <div class="whitespace-pre-wrap">${parseMarkdown(msg.content)}</div>
+                        </div>
+                    </div>`;
+                } else {
+                    htmlContent += `
+                    <div class="flex w-full justify-start">
+                        <div class="max-w-[90%] text-slate-300 text-sm md:text-base leading-loose">
+                            <div class="whitespace-pre-wrap">${parseMarkdown(msg.content)}</div>
+                        </div>
+                    </div>`;
+                }
+            });
+
+            // Afficher l'indicateur de chargement ("..." qui bouge)
+            if (isLoading) {
+                htmlContent += `
+                <div class="flex w-full justify-start pl-2">
+                    <div class="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50">
+                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>`;
+            }
+
+            // Un div vide pour que le scroll aille tout en bas
+            htmlContent += `<div id="messages-end" class="h-4"></div>`;
+            
+            container.innerHTML = htmlContent;
+
+            // Faire défiler vers le bas
+            const endDiv = document.getElementById('messages-end');
+            if (endDiv) {
+                endDiv.scrollIntoView({ behavior: "smooth" });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,486 +1,508 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MS Hash Presentation - Powered by Bonte</title>
+    <title>MbokaShop - La Marketplace n°1 en Afrique</title>
     
-    <!-- NOUVEAU : Le Logo "B" pour l'onglet du navigateur -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f59e0b'/><text x='50' y='72' font-family='sans-serif' font-size='65' font-weight='bold' fill='%23050505' text-anchor='middle'>B</text></svg>">
-    
-    <!-- Importation de Tailwind CSS pour le design -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Importation de Lucide pour les icônes -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
+    <!-- FontAwesome (Icônes) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Configuration Tailwind personnalisée -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mboka: {
+                            green: '#059669', // Vert émeraude profond
+                            orange: '#ea580c', // Orange vibrant
+                            dark: '#1f2937',
+                            light: '#f9fafb'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        @keyframes cinematic-zoom {
-            0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
-            20% { opacity: 1; filter: blur(0px); }
-            100% { transform: scale(1.1); opacity: 1; }
-        }
-        @keyframes fade-up-delayed {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-cinematic { animation: cinematic-zoom 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
-        .animate-fade-up { animation: fade-up-delayed 1.5s ease-out 2s forwards; opacity: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .prevent-fouc { display: none !important; }
+        /* Masquer la barre de défilement pour les carrousels horizontaux */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
-<body class="relative h-[100dvh] w-full bg-black font-sans overflow-hidden text-white">
+<body class="pb-20 md:pb-0 bg-gray-50">
 
-    <!-- ÉTAPE 0 : ANIMATION D'INTRODUCTION -->
-    <div id="intro-view" class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black transition-all duration-1000 visible opacity-100 pointer-events-auto">
-        <div class="flex flex-col items-center justify-center animate-cinematic w-full px-4">
-            <h1 class="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter mb-4 shadow-black drop-shadow-2xl text-center">
-                MS HASH <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">PRESENTATION</span>
-            </h1>
-            <p class="text-lg md:text-2xl text-slate-400 tracking-[0.4em] uppercase font-light animate-fade-up text-center">
-                Powered by <strong class="text-white">Bonte</strong>
-            </p>
-        </div>
-    </div>
-
-    <!-- ÉTAPE 1 : L'AFFICHE -->
-    <div id="poster-view" class="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-700 z-10 invisible opacity-0 pointer-events-none prevent-fouc">
-        <div class="w-full h-full overflow-auto flex items-center justify-center bg-black/95 relative">
-            <img id="poster-img" src="https://res.cloudinary.com/dnxxpktoa/image/upload/v1778197859/Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_labore_et_dolore_magna_aliqua._miml5g.jpg" alt="Exposé Thomas Edison" class="max-w-full max-h-full object-contain origin-center transition-transform duration-300 ease-out" style="transform: scale(1);" />
-        </div>
-        <div class="absolute top-6 right-6 flex gap-2 bg-slate-900/50 backdrop-blur-md p-1.5 rounded-full border border-slate-700/50">
-            <button id="btn-zoom-out" onclick="handleZoom(-0.5)" disabled class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><i data-lucide="zoom-out" class="w-5 h-5"></i></button>
-            <button id="btn-zoom-in" onclick="handleZoom(0.5)" class="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full transition-colors disabled:opacity-30"><i data-lucide="zoom-in" class="w-5 h-5"></i></button>
-        </div>
-        <button onclick="switchView('video')" class="absolute bottom-8 z-50 bg-indigo-600/90 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all transform hover:scale-105 flex items-center gap-2 text-sm">
-            <i data-lucide="play" class="w-[18px] h-[18px] fill-white"></i> Start Presentation
-        </button>
-    </div>
-
-    <!-- ÉTAPE 2 : LA VIDÉO -->
-    <div id="video-view" class="absolute inset-0 w-full h-full bg-slate-950 flex flex-col items-center justify-center z-20 transition-all duration-700 ease-in-out invisible opacity-0 scale-95 pointer-events-none prevent-fouc">
-        <div id="video-container" class="w-full bg-black overflow-hidden relative group transition-all duration-300 max-w-6xl aspect-video md:rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-slate-800">
-            <iframe src="https://www.youtube.com/embed/dcOGmgbTUh8?si=aD6q6ILrsy-1vk6E" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-            <button id="btn-exit-fullscreen" onclick="toggleFullScreen(true)" class="hidden absolute top-6 right-6 z-[110] bg-black/60 hover:bg-black/90 text-white p-3 rounded-full"><i data-lucide="minimize" class="w-6 h-6"></i></button>
-        </div>
-        <div id="video-controls" class="mt-8 z-50 flex flex-wrap justify-center items-center gap-4 md:gap-6 px-4 pb-4">
-            <button onclick="switchView('poster')" class="text-slate-400 hover:text-slate-200 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="arrow-left" class="w-4 h-4"></i> Exit</button>
-            <button onclick="toggleFullScreen()" class="text-indigo-400 hover:text-indigo-300 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="maximize" class="w-4 h-4"></i> Fullscreen</button>
-            <button onclick="openQRModal()" class="text-emerald-400 hover:text-emerald-300 flex items-center gap-2 px-2 py-2 text-sm font-medium"><i data-lucide="qr-code" class="w-4 h-4"></i> Show QR</button>
-            <button onclick="toggleFullScreen(true); switchView('chat')" class="relative overflow-hidden group bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:scale-105 transition-transform flex items-center gap-2 md:gap-3 text-sm md:ml-4 w-full md:w-auto justify-center mt-2 md:mt-0">
-                <i data-lucide="message-square" class="relative z-10 w-5 h-5 fill-slate-950/20"></i>
-                <span class="relative z-10 tracking-wide uppercase text-xs sm:text-sm">Enter Q&A with Partner Bontey</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ÉTAPE 3 : LE CHAT DE BONTEY -->
-    <div id="chat-view" class="absolute inset-0 w-full h-full bg-slate-900 flex flex-col z-30 transition-all duration-700 ease-in-out translate-y-full invisible opacity-0 pointer-events-none prevent-fouc">
-        <div class="px-4 md:px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex justify-between items-center shrink-0 shadow-sm backdrop-blur-md z-10">
-            <div class="flex items-center gap-4">
-                <button onclick="switchView('video')" class="flex items-center gap-2 px-2 md:px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md text-sm font-medium"><i data-lucide="arrow-left" class="w-4 h-4"></i> <span class="hidden md:inline">Exit</span></button>
-            </div>
-            <div class="flex items-center gap-2 md:gap-3">
-                <h2 class="text-amber-500 font-black uppercase tracking-widest text-base md:text-lg">Partner Bontey</h2>
-            </div>
-            <div class="flex items-center gap-3 md:gap-4">
-                <div class="flex items-center gap-2 text-slate-400 text-xs font-medium"><span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> <span class="hidden md:inline">Online</span></div>
-                <button onclick="openDeleteModal()" class="flex items-center gap-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 px-2 md:px-3 py-1.5 rounded-md transition-colors text-xs font-medium border border-rose-500/20">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">Clear</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-4 md:p-12 pb-24 space-y-10 scroll-smooth bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-slate-950">
-            <div id="messages-container" class="max-w-4xl mx-auto w-full space-y-6 md:space-y-10"></div>
-        </div>
-
-        <div class="absolute bottom-0 left-0 w-full p-4 bg-slate-950/80 border-t border-slate-800 backdrop-blur-md flex justify-center items-center gap-3 text-slate-400">
-            <i data-lucide="radio" class="w-5 h-5 text-amber-500 animate-pulse"></i>
-            <span class="font-medium tracking-wide uppercase text-xs md:text-sm text-amber-500/80 text-center">Waiting for audience questions from remote...</span>
-        </div>
-    </div>
-
-    <!-- LE MODAL DE SUPPRESSION -->
-    <div id="delete-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center transition-opacity px-4">
-        <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] text-center transform scale-100">
-            <div class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
-                <i data-lucide="alert-triangle" class="w-8 h-8 text-rose-500"></i>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-2">Clear Conversation?</h3>
-            <p class="text-slate-400 text-sm mb-8 leading-relaxed">This will permanently delete all messages for everyone. This action cannot be undone.</p>
-            <div class="flex gap-3 justify-center">
-                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-3 rounded-xl text-slate-300 font-medium hover:bg-slate-800 border border-transparent hover:border-slate-700 transition-all">Cancel</button>
-                <button onclick="executeClearHistory()" class="flex-1 px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-95">Yes, Clear</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- LE MODAL DU QR CODE -->
-    <div id="qr-modal" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center transition-opacity px-4">
-        <div class="bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-3xl max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,0.8)] text-center relative">
-            <button onclick="closeQRModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
-            <h3 class="text-xl font-bold text-white mb-4">Scan to ask a question!</h3>
-            <div class="bg-white p-4 rounded-xl mb-4">
-                <img src="https://i.postimg.cc/CxNp9pmj/Screenshot-2026-05-08-01-30-09.png" alt="QR Code" class="w-full h-auto rounded-lg" />
-            </div>
-            <p class="text-slate-400 text-sm">Use your phone camera to join the live Q&A.</p>
-        </div>
-    </div>
-
-    <!-- SCRIPT FIREBASE + GEMINI -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, getDocs, deleteDoc, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3LiNjxsV9HTcFd2ghlItTipted9rdQkU",
-            authDomain: "test-9022.firebaseapp.com",
-            projectId: "test-9022",
-            storageBucket: "test-9022.firebasestorage.app",
-            messagingSenderId: "945536290936",
-            appId: "1:945536290936:web:de1437cea95e63cb559d8d"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        window.currentView = 'intro';
+    <!-- EN-TÊTE (Header) -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
         
-        let zoomLevel = 1;
-        let isFullscreen = false;
-        let isLoading = false;
-        let messages = [];
-        
-        let geminiApiKeys = [];
-        let currentKeyIndex = 0;
-
-        const SYSTEM_PROMPT = `
-ROLE:
-You are "Partner Bontey", Richelieu Bonte's chill, natural, and friendly AI co-presenter for a school project about Thomas Edison. 
-
-CRITICAL RULES:
-1. NO ROBOT TALK: Never say "I am an AI", "As an artificial intelligence", or "I'm a bot". Speak casually, enthusiastically, and confidently, like a smart student helping his project partner out. Use natural phrasing (e.g., "Yeah, totally!", "That's a great question.", "Actually,...").
-2. EXPERT KNOWLEDGE: Base your answers primarily on the "PRESENTATION SCRIPT" below, but feel free to intelligently use your broader knowledge about Thomas Edison to give rich, professional, and fascinating answers. Always stay on topic.
-3. CONCISENESS: Keep answers short and punchy (1 to 3 sentences max). 
-4. HIGHLIGHTS: Always put key facts in **bold** so the user can easily read them.
-5. LANGUAGE: You MUST strictly reply in ENGLISH by default. Do not speak French unless an explicit system override is activated.
-6. DEFLECT: If a question is entirely off-topic, playfully bring it back: "Haha, let's keep it focused on Edison for now! What else do you want to know about his inventions?"
-
-PRESENTATION SCRIPT (YOUR EXCLUSIVE KNOWLEDGE BASE):
-- Introduction: Richelieu Bonte is the presenter. The subject is Thomas Edison, the "Wizard of Menlo Park", the man who captured time and sound.
-- Childhood: Edison went to school for only 3 months. His teacher thought he was "slow". His mother knew better and homeschooled him in their basement lab.
-- The Phonograph: Invented in 1877, it's his masterpiece. Before this, there was no recorded music (no Spotify, no YouTube).
-- How it works: It's mechanical magic. A needle carves sound vibrations into a wax cylinder. To play it back, the needle simply follows those same grooves. Pure genius.
-- First Recording: The first thing ever recorded was Edison reciting the poem "Mary Had a Little Lamb". Hearing a machine talk back was like seeing a ghost. People were shocked.
-- Deaf Genius: Edison was nearly deaf. To "hear" his music, he would bite the wood of his machines and pianos to feel the vibrations in his jaw. True determination.
-- Democratization: He didn't just invent a machine; he invented an industry. Before him, you had to be rich to hear live music. Edison brought the concert into the living room.
-- Modern Link: Without Edison's work on sound, modern artists like Rihanna and apps like Spotify wouldn't exist. He laid the foundation for everything we play today.
-- Perseverance: He filed over 1,000 patents. His famous mindset/quote: "I haven't failed. I've just found 10,000 ways that won't work." That makes him a legend.
-`;
-
-        async function fetchApiKey() {
-            try {
-                const docRef = doc(db, "config", "api_keys");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    geminiApiKeys = []; 
-                    
-                    if (data.keys) {
-                        if (Array.isArray(data.keys)) {
-                            geminiApiKeys = data.keys;
-                        } 
-                        else if (typeof data.keys === 'string') {
-                            geminiApiKeys = data.keys.split(',').map(k => k.trim());
-                        }
-                    } else if (data.gemini) {
-                        geminiApiKeys = [data.gemini];
-                    }
-                    console.log("Clés API sécurisées récupérées depuis Firebase :", geminiApiKeys.length);
-                }
-            } catch (error) {
-                console.error("Erreur de récupération de la clé:", error);
-            }
-        }
-
-        async function claimAndProcessQuestion(docId) {
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const msgRef = doc(db, "live_chat", docId);
-                    const msgSnap = await transaction.get(msgRef);
-                    
-                    if (!msgSnap.exists()) {
-                        throw "Message introuvable";
-                    }
-                    if (msgSnap.data().isProcessing) {
-                        return Promise.reject("Déjà en cours de traitement par un autre écran");
-                    }
-                    transaction.update(msgRef, { isProcessing: true });
-                });
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="index.html" class="flex-shrink-0 flex items-center">
+                    <img src="https://i.postimg.cc/bw7fs5dp/Capture-d-ecran-2026-06-12-135639.png" alt="MbokaShop Logo" class="h-12 w-auto">
+                </a>
                 
-                console.log("🔒 Ce navigateur a pris le contrôle pour générer la réponse !");
-                processUserQuestion();
-                
-            } catch (error) {
-                console.log("Un autre écran s'occupe déjà de cette question, j'ignore.");
-            }
-        }
-
-        function listenToMessages() {
-            let isInitialLoad = true;
-            const q = query(collection(db, "live_chat"), orderBy("createdAt", "asc"));
-            
-            onSnapshot(q, (snapshot) => {
-                if (snapshot.docs.length === 0) {
-                    messages = [];
-                    window.renderMessages();
-                    isInitialLoad = false;
-                    return;
-                }
-
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added") {
-                        const msgData = change.doc.data();
-                        
-                        if (msgData.content.includes("⚠️ **SYSTEM ERROR:**") || msgData.content.includes("interference right now")) return;
-                        
-                        messages.push({ id: change.doc.id, role: msgData.role, content: msgData.content });
-                        
-                        // === CORRECTION DES PETITS POINTS ===
-                        // Peu importe quel ordinateur gagne, TOUS les écrans allument les 3 points dès qu'un utilisateur pose une question !
-                        if (!isInitialLoad) {
-                            if (msgData.role === 'user') {
-                                isLoading = true; // Allume les points
-                            } else if (msgData.role === 'model') {
-                                isLoading = false; // Eteint les points quand l'IA répond
-                            }
-                        }
-
-                        window.renderMessages();
-
-                        if (!isInitialLoad && msgData.role === 'user') {
-                            claimAndProcessQuestion(change.doc.id);
-                        }
-                    }
-                    
-                    if (change.type === "removed") {
-                        messages = messages.filter(m => m.id !== change.doc.id);
-                        window.renderMessages();
-                    }
-                });
-                isInitialLoad = false;
-            });
-        }
-
-        async function processUserQuestion() {
-            try {
-                let validHistory = [];
-                let speakFrench = false;
-
-                messages.forEach(msg => {
-                    if (!msg.content || msg.role === 'system' || msg.id === 'error-msg') return;
-                    
-                    if (msg.role === 'user') {
-                        const text = msg.content.toLowerCase();
-                        if (text.includes('1974')) speakFrench = true;
-                        if (text.match(/\bstop\b/)) speakFrench = false;
-                    }
-
-                    if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === msg.role) {
-                        validHistory[validHistory.length - 1].parts[0].text += "\n" + msg.content;
-                    } else {
-                        validHistory.push({
-                            role: msg.role === 'model' ? 'model' : 'user',
-                            parts: [{ text: msg.content }]
-                        });
-                    }
-                });
-
-                if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === 'model') {
-                    validHistory.pop();
-                }
-
-                let dynamicPrompt = SYSTEM_PROMPT;
-                if (speakFrench) {
-                    dynamicPrompt += "\n\nCRITICAL OVERRIDE: The secret code '1974' was triggered in the chat. You MUST now answer EVERYTHING in FRENCH until told otherwise.";
-                } else {
-                    dynamicPrompt += "\n\nCRITICAL OVERRIDE: You MUST answer EVERYTHING in ENGLISH.";
-                }
-
-                const payload = {
-                    systemInstruction: { parts: [{ text: dynamicPrompt }] },
-                    contents: validHistory,
-                    generationConfig: { maxOutputTokens: 250, temperature: 0.4 }
-                };
-
-                let responseData = null;
-                let success = false;
-                
-                const modelsToTest = ["gemini-2.5-flash", "gemini-1.5-flash"];
-
-                for (let i = 0; i < geminiApiKeys.length; i++) {
-                    let keyToTry = geminiApiKeys[(currentKeyIndex + i) % geminiApiKeys.length];
-                    if (keyToTry === undefined || keyToTry === null) continue;
-                    
-                    for (let modelName of modelsToTest) {
-                        try {
-                            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToTry}`;
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-
-                            if (!response.ok) throw new Error(`Status ${response.status}`);
-                            
-                            responseData = await response.json();
-                            success = true;
-                            currentKeyIndex = (currentKeyIndex + i) % geminiApiKeys.length; 
-                            break; 
-                        } catch (err) {
-                            console.warn(`Tentative échouée sur modèle ${modelName}`);
-                        }
-                    }
-                    if (success) break; 
-                }
-
-                if (!success) {
-                    throw new Error("Toutes les clés API ont échoué sur tous les modèles.");
-                }
-
-                const reply = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "Let's keep the questions coming!";
-                
-                await addDoc(collection(db, "live_chat"), {
-                    role: 'model',
-                    content: reply,
-                    createdAt: serverTimestamp()
-                });
-
-            } catch (err) {
-                console.error("Erreur Ultime :", err);
-                await addDoc(collection(db, "live_chat"), {
-                    role: 'model',
-                    content: "We're experiencing a slight network interference right now, much like Edison's early telegraphs! Please try asking that again.",
-                    createdAt: serverTimestamp()
-                });
-            }
-        }
-
-        window.openDeleteModal = function() { document.getElementById('delete-modal').classList.remove('hidden'); };
-        window.closeDeleteModal = function() { document.getElementById('delete-modal').classList.add('hidden'); };
-        window.openQRModal = function() { document.getElementById('qr-modal').classList.remove('hidden'); };
-        window.closeQRModal = function() { document.getElementById('qr-modal').classList.add('hidden'); };
-
-        window.executeClearHistory = async function() {
-            window.closeDeleteModal();
-            messages = [];
-            window.renderMessages();
-            
-            try {
-                const querySnapshot = await getDocs(collection(db, "live_chat"));
-                const deletePromises = [];
-                querySnapshot.forEach((d) => { deletePromises.push(deleteDoc(doc(db, "live_chat", d.id))); });
-                await Promise.all(deletePromises);
-            } catch (error) {
-                messages.push({ id: 'error-msg', role: 'model', content: "⚠️ **SYSTEM ERROR:** Cannot delete. Check Firebase Rules (allow delete, update: if true;)" });
-                window.renderMessages();
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            document.getElementById('poster-view').classList.remove('prevent-fouc');
-            document.getElementById('video-view').classList.remove('prevent-fouc');
-            document.getElementById('chat-view').classList.remove('prevent-fouc');
-
-            lucide.createIcons();
-            window.renderMessages();
-            await fetchApiKey();
-            listenToMessages();
-            setTimeout(() => { window.switchView('poster'); }, 5000);
-        });
-
-        window.setVisible = function(el, isVisible) {
-            if (isVisible) { el.classList.remove('invisible', 'opacity-0', 'pointer-events-none'); el.classList.add('visible', 'opacity-100', 'pointer-events-auto'); }
-            else { el.classList.remove('visible', 'opacity-100', 'pointer-events-auto'); el.classList.add('invisible', 'opacity-0', 'pointer-events-none'); }
-        };
-
-        window.switchView = function(view) {
-            window.currentView = view;
-            const intro = document.getElementById('intro-view'), poster = document.getElementById('poster-view'), video = document.getElementById('video-view'), chat = document.getElementById('chat-view');
-            window.setVisible(intro, false); window.setVisible(poster, false); window.setVisible(video, false);
-            video.classList.add('scale-95'); 
-            
-            chat.classList.remove('translate-y-0', 'visible', 'opacity-100', 'pointer-events-auto'); 
-            chat.classList.add('translate-y-full', 'invisible', 'opacity-0', 'pointer-events-none');
-
-            if(view === 'intro') window.setVisible(intro, true);
-            else if(view === 'poster') setTimeout(() => window.setVisible(poster, true), 50);
-            else if(view === 'video') { window.setVisible(video, true); video.classList.remove('scale-95'); }
-            else if(view === 'chat') { 
-                chat.classList.remove('translate-y-full', 'invisible', 'opacity-0', 'pointer-events-none'); 
-                chat.classList.add('translate-y-0', 'visible', 'opacity-100', 'pointer-events-auto'); 
-                window.renderMessages(); 
-            }
-        };
-
-        window.handleZoom = function(amount) {
-            zoomLevel = Math.max(1, Math.min(3, zoomLevel + amount));
-            document.getElementById('poster-img').style.transform = `scale(${zoomLevel})`;
-            document.getElementById('btn-zoom-out').disabled = zoomLevel <= 1; document.getElementById('btn-zoom-in').disabled = zoomLevel >= 3;
-        };
-
-        window.toggleFullScreen = function(forceClose = false) {
-            isFullscreen = forceClose ? false : !isFullscreen;
-            const videoContainer = document.getElementById('video-container'), btnExit = document.getElementById('btn-exit-fullscreen'), controls = document.getElementById('video-controls');
-            if (isFullscreen) {
-                videoContainer.classList.add('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none'); videoContainer.classList.remove('max-w-6xl', 'aspect-video', 'rounded-2xl', 'md:rounded-2xl');
-                btnExit.classList.remove('hidden'); controls.classList.replace('flex', 'hidden');
-            } else {
-                videoContainer.classList.remove('absolute', 'inset-0', 'z-[100]', 'h-full', 'rounded-none'); videoContainer.classList.add('max-w-6xl', 'aspect-video', 'rounded-2xl', 'md:rounded-2xl');
-                btnExit.classList.add('hidden'); controls.classList.replace('hidden', 'flex');
-            }
-        };
-
-        window.parseMarkdown = function(text) {
-            if (!text) return '';
-            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-400 font-bold">$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br/>');
-        };
-
-        window.renderMessages = function() {
-            const container = document.getElementById('messages-container');
-            let htmlContent = `
-            <div class="flex w-full justify-start">
-                <div class="max-w-[90%] md:max-w-[80%] text-slate-300 text-sm md:text-base leading-loose bg-slate-800/30 p-4 md:p-5 rounded-2xl rounded-tl-sm border border-slate-700/50">
-                    <div class="whitespace-pre-wrap"><strong class="text-amber-500 font-black tracking-widest text-base md:text-lg">PARTNER BONTEY</strong><br/>Hey guys! 👋 I'm Bontey, Richelieu Bonte's AI partner. The presentation is over, so hit me with your questions!</div>
+                <!-- Barre de recherche (Desktop) -->
+                <div class="hidden md:flex flex-1 mx-12">
+                    <form action="categories.html" class="relative w-full flex shadow-sm rounded-full">
+                        <input type="text" class="w-full bg-white border-2 border-mboka-green rounded-l-full py-2.5 pl-6 pr-10 focus:outline-none focus:ring-0 transition text-gray-800 placeholder-gray-400" placeholder="Chercher un produit, une marque, une catégorie...">
+                        <button type="submit" class="bg-mboka-green hover:bg-emerald-700 text-white px-8 rounded-r-full transition font-bold text-lg">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </form>
                 </div>
-            </div>`;
 
-            messages.forEach(msg => {
-                if (msg.role === 'user') {
-                    htmlContent += `<div class="flex w-full justify-end"><div class="max-w-[85%] md:max-w-[70%] bg-indigo-600 text-white px-4 md:px-5 py-3 md:py-3.5 rounded-2xl rounded-tr-sm shadow-sm text-sm md:text-base leading-relaxed"><div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div></div></div>`;
-                } else {
-                    const isError = msg.id === 'error-msg';
-                    htmlContent += `<div class="flex w-full justify-start"><div class="max-w-[95%] md:max-w-[90%] ${isError ? 'text-rose-400 font-bold bg-rose-500/10' : 'text-slate-300'} text-sm md:text-base leading-loose p-2 rounded-xl"><div class="whitespace-pre-wrap">${window.parseMarkdown(msg.content)}</div></div></div>`;
-                }
-            });
-
-            // Affichage global des 3 petits points
-            if (isLoading) {
-                htmlContent += `<div class="flex w-full justify-start pl-2"><div class="flex space-x-1.5 items-center bg-slate-800/50 px-4 py-3 rounded-2xl rounded-tl-sm border border-slate-700/50"><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>`;
-            }
-
-            htmlContent += `<div id="messages-end" class="h-4"></div>`;
-            container.innerHTML = htmlContent;
+                <!-- Icônes Navigation Droite -->
+                <div class="flex items-center space-x-8">
+                    <!-- Bouton Vendre -->
+                    <a href="inscription.html" class="hidden lg:flex items-center text-sm font-bold text-mboka-green hover:underline transition">
+                        Vendre sur MbokaShop
+                    </a>
+                    
+                    <!-- Connexion / Compte -->
+                    <a href="connexion.html" class="text-gray-700 hover:text-mboka-green hidden md:flex flex-col items-center group transition">
+                        <i class="fa-regular fa-user text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs mt-1 font-semibold">Se connecter</span>
+                    </a>
+                    
+                    <!-- Panier -->
+                    <a href="panier.html" class="text-gray-700 hover:text-mboka-green relative flex flex-col items-center group transition">
+                        <i class="fa-solid fa-cart-shopping text-xl group-hover:scale-110 transition-transform"></i>
+                        <span class="text-xs mt-1 font-semibold hidden md:block">Panier</span>
+                        <span id="cart-badge" class="absolute -top-2 -right-2 bg-mboka-orange text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">0</span>
+                    </a>
+                </div>
+            </div>
             
-            if (window.currentView === 'chat') {
-                const endDiv = document.getElementById('messages-end');
-                if (endDiv) endDiv.scrollIntoView({ behavior: "smooth" });
+            <!-- Barre de recherche (Mobile) -->
+            <div class="md:hidden pb-3 pt-2">
+                <form action="categories.html" class="relative w-full shadow-sm rounded-full">
+                    <input type="text" class="w-full bg-white border border-mboka-green rounded-full py-2.5 pl-5 pr-12 focus:outline-none text-sm" placeholder="Chercher sur MbokaShop...">
+                    <button type="submit" class="absolute right-0 top-0 h-full px-5 text-white bg-mboka-green rounded-r-full">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION BAS (Mobile App Style) -->
+    <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 z-50 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <div class="flex justify-around items-center h-14">
+            <a href="index.html" class="flex flex-col items-center text-mboka-green w-1/4">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] mt-1 font-medium">Accueil</span>
+            </a>
+            <a href="categories.html" class="flex flex-col items-center text-gray-400 hover:text-mboka-green transition w-1/4">
+                <i class="fa-solid fa-layer-group text-lg"></i>
+                <span class="text-[10px] mt-1 font-medium">Catégories</span>
+            </a>
+            <a href="boutique.html" class="flex flex-col items-center text-gray-400 hover:text-mboka-green transition w-1/4">
+                <i class="fa-solid fa-store text-lg"></i>
+                <span class="text-[10px] mt-1 font-medium">Boutiques</span>
+            </a>
+            <a href="profil.html" class="flex flex-col items-center text-gray-400 hover:text-mboka-green transition w-1/4">
+                <i class="fa-regular fa-user text-lg"></i>
+                <span class="text-[10px] mt-1 font-medium">Compte</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+        
+        <!-- Section Hero (Bannière Retail Pro) -->
+        <div class="relative bg-emerald-50 rounded-2xl overflow-hidden mb-8 border border-emerald-100 flex flex-col md:flex-row items-center justify-between">
+            <div class="relative z-10 px-8 py-10 md:py-16 md:px-14 flex flex-col items-start w-full md:w-1/2">
+                <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
+                    Vos achats du quotidien, <span class="text-mboka-green">livrés chez vous.</span>
+                </h1>
+                <p class="text-gray-600 text-sm md:text-lg mb-8 max-w-lg">
+                    Électronique, mode, supermarché... des milliers de vendeurs locaux à portée de clic.
+                </p>
+                <a href="categories.html" class="bg-mboka-green hover:bg-emerald-700 text-white font-bold py-3.5 px-8 rounded-full transition shadow-md flex items-center text-lg">
+                    Découvrir les offres
+                </a>
+            </div>
+            <!-- Image d'illustration propre (style retail) -->
+            <div class="hidden md:block w-1/2 h-full absolute right-0 top-0">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-50 to-transparent z-10"></div>
+                <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Achats en ligne" class="w-full h-full object-cover object-left">
+            </div>
+        </div>
+
+        <!-- Catégories (Navigation rapide) -->
+        <div class="mb-10">
+            <h2 class="text-lg md:text-xl font-bold text-gray-900 mb-4">Explorer les rayons</h2>
+            <div class="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
+                <a href="categories.html?cat=mode" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-pink-600 shadow-sm border border-gray-200 group-hover:border-pink-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-shirt text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Mode & Wax</span>
+                </a>
+                <a href="categories.html?cat=telephones" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm border border-gray-200 group-hover:border-blue-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-mobile-screen text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Téléphones</span>
+                </a>
+                <a href="categories.html?cat=supermarche" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-red-600 shadow-sm border border-gray-200 group-hover:border-red-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-basket-shopping text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Supermarché</span>
+                </a>
+                <a href="categories.html?cat=maison" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-sm border border-gray-200 group-hover:border-orange-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-couch text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Maison</span>
+                </a>
+                <a href="categories.html?cat=beaute" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-teal-600 shadow-sm border border-gray-200 group-hover:border-teal-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-spray-can-sparkles text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Beauté</span>
+                </a>
+                <a href="categories.html?cat=informatique" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-purple-600 shadow-sm border border-gray-200 group-hover:border-purple-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-laptop text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Informatique</span>
+                </a>
+                <a href="categories.html?cat=auto" class="flex-shrink-0 flex flex-col items-center w-24 group">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm border border-gray-200 group-hover:border-gray-400 group-hover:shadow-md transition">
+                        <i class="fa-solid fa-car text-3xl"></i>
+                    </div>
+                    <span class="text-sm text-gray-700 font-medium text-center mt-2 group-hover:text-mboka-green">Auto & Moto</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- SECTION 1 : Ventes Flash (Style promo) -->
+        <div class="mb-12 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-red-100 relative">
+            <div class="absolute top-0 left-0 bg-red-600 text-white font-bold px-4 py-1 rounded-br-xl rounded-tl-2xl text-sm flex items-center">
+                <i class="fa-solid fa-bolt mr-2"></i> Ventes Flash
+            </div>
+            <div class="flex justify-between items-end mb-4 mt-6">
+                <h2 class="text-lg md:text-xl font-bold text-gray-900">Offres à durée limitée</h2>
+                <span class="text-sm font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">Se termine vite !</span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" id="flash-sales-container">
+                <!-- Produits Ventes Flash -->
+            </div>
+        </div>
+
+        <!-- SECTION 2 : Coin Supermarché & Alimentation -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-gray-900 flex items-center">
+                    <i class="fa-solid fa-basket-shopping text-mboka-green mr-2"></i> Coin Supermarché
+                </h2>
+                <a href="#" class="text-sm font-medium text-mboka-green hover:underline">Faire ses courses <i class="fa-solid fa-angle-right"></i></a>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" id="supermarket-container">
+                <!-- Produits Supermarché -->
+            </div>
+        </div>
+
+        <!-- BANNIÈRE PROMOTIONNELLE -->
+        <a href="#" class="block mb-12 rounded-2xl overflow-hidden shadow-sm relative group">
+            <img src="https://images.unsplash.com/photo-1607082350899-7e105aa886ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Promo" class="w-full h-32 md:h-48 object-cover group-hover:scale-105 transition duration-500">
+            <div class="absolute inset-0 bg-gradient-to-r from-mboka-dark/90 to-transparent flex flex-col justify-center px-8 md:px-12">
+                <h3 class="text-white text-xl md:text-3xl font-extrabold mb-1">Livraison Gratuite !</h3>
+                <p class="text-gray-200 text-sm md:text-base mb-3">Sur toute la sélection High-Tech ce weekend.</p>
+                <span class="inline-block bg-mboka-orange text-white text-xs font-bold px-4 py-2 rounded-full w-max">J'en profite</span>
+            </div>
+        </a>
+
+        <!-- SECTION 3 : High-Tech & Électronique -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-gray-900 flex items-center">
+                    <i class="fa-solid fa-laptop text-blue-600 mr-2"></i> High-Tech & Électroménager
+                </h2>
+                <a href="#" class="text-sm font-medium text-mboka-green hover:underline">Voir tout <i class="fa-solid fa-angle-right"></i></a>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5" id="tech-container">
+                <!-- Produits Tech -->
+            </div>
+        </div>
+
+        <!-- SECTION 4 : Recommandé pour vous (Tout le reste) -->
+        <div class="mb-10">
+            <div class="flex justify-between items-center mb-4 border-t border-gray-200 pt-8">
+                <h2 class="text-xl md:text-2xl font-extrabold text-gray-900">Recommandé pour vous</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-5" id="all-products-container">
+                <!-- Reste des produits -->
+            </div>
+        </div>
+
+        <!-- Section Avantages (Réassurance Retail) -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 md:p-10 grid grid-cols-1 md:grid-cols-4 gap-6 text-center border border-gray-100">
+            <div class="flex flex-col items-center">
+                <div class="w-14 h-14 bg-emerald-50 text-mboka-green rounded-full flex items-center justify-center text-2xl mb-4">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 mb-1">Livraison Rapide</h3>
+                <p class="text-sm text-gray-500">Partout dans la ville en 24h à 48h maximum.</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-14 h-14 bg-emerald-50 text-mboka-green rounded-full flex items-center justify-center text-2xl mb-4">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 mb-1">Paiement à la livraison</h3>
+                <p class="text-sm text-gray-500">Payez uniquement après avoir inspecté votre article.</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-14 h-14 bg-emerald-50 text-[#25D366] rounded-full flex items-center justify-center text-2xl mb-4">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 mb-1">Support WhatsApp</h3>
+                <p class="text-sm text-gray-500">Une question ? Discutez directement avec le vendeur.</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-14 h-14 bg-emerald-50 text-mboka-green rounded-full flex items-center justify-center text-2xl mb-4">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 mb-1">Achats Sécurisés</h3>
+                <p class="text-sm text-gray-500">Vendeurs vérifiés et système de protection acheteur.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- PIED DE PAGE (Footer) -->
+    <footer class="bg-mboka-dark text-gray-300 pt-10 pb-24 md:pb-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Info Logo -->
+                <div class="col-span-1 md:col-span-1">
+                    <a href="index.html" class="mb-4 block">
+                        <img src="https://i.postimg.cc/bw7fs5dp/Capture-d-ecran-2026-06-12-135639.png" alt="MbokaShop Logo" class="h-10 w-auto">
+                    </a>
+                    <p class="text-sm text-gray-400 mb-4">La première marketplace conçue pour simplifier le commerce en ligne en Afrique francophone.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-facebook text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-instagram text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-whatsapp text-xl"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Liens Utiles -->
+                <div>
+                    <h4 class="text-white font-bold mb-4 uppercase text-sm">Acheter sur MbokaShop</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="categories.html" class="hover:text-mboka-green transition">Toutes les catégories</a></li>
+                        <li><a href="panier.html" class="hover:text-mboka-green transition">Mon panier</a></li>
+                        <li><a href="connexion.html" class="hover:text-mboka-green transition">Suivre ma commande</a></li>
+                        <li><a href="contact.html" class="hover:text-mboka-green transition">Service Client</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Vendeurs -->
+                <div>
+                    <h4 class="text-white font-bold mb-4 uppercase text-sm">Vendre sur MbokaShop</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="inscription.html" class="hover:text-mboka-green transition">Créer une boutique</a></li>
+                        <li><a href="connexion.html" class="hover:text-mboka-green transition">Connexion Vendeur</a></li>
+                        <li><a href="#" class="hover:text-mboka-green transition">Tarifs et Commissions</a></li>
+                        <li><a href="#" class="hover:text-mboka-green transition">Règlement des vendeurs</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Légal -->
+                <div>
+                    <h4 class="text-white font-bold mb-4 uppercase text-sm">Informations</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-mboka-green transition">À propos de nous</a></li>
+                        <li><a href="#" class="hover:text-mboka-green transition">Conditions d'utilisation</a></li>
+                        <li><a href="#" class="hover:text-mboka-green transition">Politique de confidentialité</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-sm text-center text-gray-500">
+                &copy; <span id="year"></span> MbokaShop. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+
+    <!-- LOGIQUE JAVASCRIPT PRINCIPALE -->
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // 1. Grande base de données de produits simulée
+        const products = [
+            // --- VENTES FLASH ---
+            { id: 101, title: "TV Smart 4K 50 Pouces Samsung", price: 250000, oldPrice: 320000, seller: "ÉlectroDépôt", sellerId: "s1", image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.8, reviews: 142, category: "flash" },
+            { id: 102, title: "Sneakers Air Max Homme", price: 15000, oldPrice: 25000, seller: "Kicks 225", sellerId: "s2", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.5, reviews: 89, category: "flash" },
+            { id: 103, title: "Set de Casseroles Antiadhésives", price: 22000, oldPrice: 35000, seller: "Maison Design", sellerId: "s3", image: "https://images.unsplash.com/photo-1584990347449-a6efa1a54ebb?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.7, reviews: 56, category: "flash" },
+            { id: 104, title: "Écouteurs Sans Fil Pro", price: 8000, oldPrice: 15000, seller: "Tech Zone", sellerId: "s4", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.3, reviews: 210, category: "flash" },
+            { id: 105, title: "Montre Connectée Sport", price: 12000, oldPrice: 20000, seller: "Gadget Store", sellerId: "s5", image: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.6, reviews: 75, category: "flash" },
+            
+            // --- SUPERMARCHÉ ---
+            { id: 201, title: "Sac de Riz Parfumé 25kg", price: 18500, oldPrice: null, seller: "Supermarché Central", sellerId: "s6", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.9, reviews: 320, category: "supermarche" },
+            { id: 202, title: "Huile Végétale 5L", price: 6500, oldPrice: null, seller: "Supermarché Central", sellerId: "s6", image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.8, reviews: 150, category: "supermarche" },
+            { id: 203, title: "Pack de 6 Lait en Poudre", price: 12000, oldPrice: null, seller: "AlimEx", sellerId: "s7", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.7, reviews: 90, category: "supermarche" },
+            { id: 204, title: "Pâte de Tomate Carton", price: 8500, oldPrice: null, seller: "AlimEx", sellerId: "s7", image: "https://images.unsplash.com/photo-1582284540020-8acbe03f4924?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.5, reviews: 45, category: "supermarche" },
+            { id: 205, title: "Beurre de Karité Bio - 500g", price: 3500, oldPrice: null, seller: "Nature & Beauté CI", sellerId: "s8", image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.9, reviews: 89, category: "supermarche" },
+
+            // --- HIGH-TECH ---
+            { id: 301, title: "iPhone 13 Pro (Reconditionné)", price: 450000, oldPrice: null, seller: "Tech Zone", sellerId: "s4", image: "https://images.unsplash.com/photo-1603566234498-842217c063b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.5, reviews: 112, category: "tech" },
+            { id: 302, title: "Ordinateur Portable Core i5", price: 180000, oldPrice: 200000, seller: "Inforatique Pro", sellerId: "s9", image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.6, reviews: 34, category: "tech" },
+            { id: 303, title: "Mixeur Blender 3 en 1", price: 15000, oldPrice: null, seller: "ÉlectroDépôt", sellerId: "s1", image: "https://images.unsplash.com/photo-1585237432822-79339e830fcc?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.4, reviews: 67, category: "tech" },
+            { id: 304, title: "Batterie Externe 20000mAh", price: 10000, oldPrice: null, seller: "Gadget Store", sellerId: "s5", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.7, reviews: 120, category: "tech" },
+
+            // --- AUTRES (Recommandés) ---
+            { id: 401, title: "Ensemble Pagne Wax Super High", price: 18500, oldPrice: null, seller: "Boutique Maman Africa", sellerId: "s10", image: "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.8, reviews: 24, category: "autre" },
+            { id: 402, title: "Montre Homme Chrono Luxe", price: 15000, oldPrice: null, seller: "Accessoires Dakar", sellerId: "s11", image: "https://images.unsplash.com/photo-1524592094714-a152eb40824b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.2, reviews: 15, category: "autre" },
+            { id: 403, title: "Sac à main en cuir PU", price: 12500, oldPrice: null, seller: "Chic Fashion", sellerId: "s12", image: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.5, reviews: 41, category: "autre" },
+            { id: 404, title: "Parfum Homme Boisé", price: 25000, oldPrice: null, seller: "Parfumerie Royale", sellerId: "s13", image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80", rating: 4.8, reviews: 88, category: "autre" }
+        ];
+
+        const formatPrix = (prix) => new Intl.NumberFormat('fr-FR').format(prix) + " FCFA";
+
+        // Fonction générique pour créer la carte HTML d'un produit
+        const createProductCard = (product) => {
+            const productUrl = `produit.html?id=${product.id}`;
+            const sellerUrl = `boutique.html?id=${product.sellerId}`;
+            
+            // Gestion du badge promo et du prix barré
+            let priceHTML = `<span class="font-extrabold text-gray-900 text-lg">${formatPrix(product.price)}</span>`;
+            let badgeHTML = '';
+            
+            if (product.oldPrice) {
+                const discount = Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+                priceHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-extrabold text-red-600 text-lg">${formatPrix(product.price)}</span>
+                        <span class="text-xs text-gray-400 line-through">${formatPrix(product.oldPrice)}</span>
+                    </div>
+                `;
+                badgeHTML = `<span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-sm z-10 shadow-sm">-${discount}%</span>`;
             }
+
+            return `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-gray-300 transition duration-300 flex flex-col relative group">
+                    ${badgeHTML}
+                    <a href="${productUrl}" class="relative w-full pt-[100%] bg-gray-50 overflow-hidden block">
+                        <img src="${product.image}" alt="${product.title}" class="absolute top-0 left-0 w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </a>
+                    
+                    <div class="p-3 md:p-4 flex flex-col flex-grow">
+                        <a href="${sellerUrl}" class="text-[10px] md:text-xs text-gray-500 mb-1 hover:text-mboka-green truncate transition">
+                            <i class="fa-solid fa-store mr-1 text-gray-400"></i>${product.seller}
+                        </a>
+                        
+                        <a href="${productUrl}" class="font-medium text-gray-800 text-sm leading-tight mb-2 line-clamp-2 hover:text-mboka-green transition" title="${product.title}">
+                            ${product.title}
+                        </a>
+                        
+                        <div class="flex items-center mb-4 mt-auto">
+                            <i class="fa-solid fa-star text-yellow-400 text-[10px] md:text-xs"></i>
+                            <span class="text-xs font-bold ml-1 text-gray-700">${product.rating}</span>
+                            <span class="text-[10px] text-gray-400 ml-1">(${product.reviews})</span>
+                        </div>
+                        
+                        <div class="mt-auto flex flex-col gap-2">
+                            ${priceHTML}
+                            <button onclick="ajouterAuPanier(${product.id})" class="w-full bg-white border border-mboka-green text-mboka-green hover:bg-mboka-green hover:text-white font-bold py-2 rounded-full text-sm transition duration-200 flex items-center justify-center shadow-sm">
+                                <i class="fa-solid fa-cart-plus mr-1"></i> Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         };
+
+        // Rendu de toutes les sections
+        const renderAllSections = () => {
+            // Flash Sales
+            const flashContainer = document.getElementById('flash-sales-container');
+            const flashProducts = products.filter(p => p.category === 'flash');
+            flashContainer.innerHTML = flashProducts.map(createProductCard).join('');
+
+            // Supermarket
+            const superContainer = document.getElementById('supermarket-container');
+            const superProducts = products.filter(p => p.category === 'supermarche');
+            superContainer.innerHTML = superProducts.map(createProductCard).join('');
+
+            // Tech
+            const techContainer = document.getElementById('tech-container');
+            const techProducts = products.filter(p => p.category === 'tech');
+            techContainer.innerHTML = techProducts.map(createProductCard).join('');
+
+            // Recommended (All others or a mix)
+            const allContainer = document.getElementById('all-products-container');
+            const otherProducts = products.filter(p => p.category === 'autre');
+            allContainer.innerHTML = otherProducts.map(createProductCard).join('');
+        };
+
+        // 4. Gestion basique du Panier (Sauvegarde dans le navigateur)
+        const initPanier = () => {
+            const savedCart = localStorage.getItem('mbokaCart');
+            let cart = savedCart ? JSON.parse(savedCart) : [];
+            updateBadge(cart);
+        };
+
+        const ajouterAuPanier = (productId) => {
+            const savedCart = localStorage.getItem('mbokaCart');
+            let cart = savedCart ? JSON.parse(savedCart) : [];
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                const product = products.find(p => p.id === productId);
+                cart.push({
+                    id: product.id,
+                    title: product.title,
+                    price: product.price, // On utilise le prix actuel (soldé ou non)
+                    image: product.image,
+                    seller: product.seller,
+                    quantity: 1
+                });
+            }
+            
+            localStorage.setItem('mbokaCart', JSON.stringify(cart));
+            updateBadge(cart);
+            showMessage("Produit ajouté au panier !");
+        };
+
+        const updateBadge = (cart) => {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const badge = document.getElementById('cart-badge');
+            badge.textContent = totalItems;
+            
+            badge.classList.add('scale-125', 'bg-red-600');
+            setTimeout(() => badge.classList.remove('scale-125', 'bg-red-600'), 200);
+        };
+
+        // Message temporaire (Toast)
+        const showMessage = (msg) => {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-20 md:bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-2xl z-[100] transition-opacity duration-300 flex items-center";
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-mboka-green text-lg mr-2"></i> ${msg}`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        };
+
+        // Lancement
+        renderAllSections();
+        initPanier();
     </script>
 </body>
 </html>
